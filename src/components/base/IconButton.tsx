@@ -96,6 +96,7 @@ interface IconButtonProps {
   style?: StyleProp<ViewStyle>
   testID?: string
   accessibilityLabel?: string
+  accessibilityHint?: string
 }
 
 export function IconButton({
@@ -113,6 +114,7 @@ export function IconButton({
   style,
   testID,
   accessibilityLabel,
+  accessibilityHint,
 }: IconButtonProps) {
   const isDisabled = disabled || loading
   const dim = SIZES[size]
@@ -153,6 +155,8 @@ export function IconButton({
     <Pressable
       testID={testID}
       accessibilityLabel={accessibilityLabel}
+      accessibilityHint={accessibilityHint}
+      accessibilityRole="button"
       style={({ pressed }) => [
         styles.base,
         {

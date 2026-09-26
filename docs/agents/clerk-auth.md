@@ -18,6 +18,13 @@ trace IDs, or dashboard exports in this repository, issues, logs, screenshots, o
 
 `.env.example` contains variable names only. Real environment files must remain gitignored.
 
+Development-variant installs may omit the publishable key to run in local mode. In that mode the
+root omits Clerk and DeviceAuthSync, account entry points explain that cloud accounts are unavailable,
+and backup status is unavailable. Local recording and independently authenticated Floaty access remain
+available. Production-variant installs still fail on missing Clerk configuration. This does not grant
+access to server-protected features or substitute an authenticated identity. Map rendering separately
+requires a configured Mapbox token.
+
 ## Durable app configuration
 
 The integration is owned by these durable files:

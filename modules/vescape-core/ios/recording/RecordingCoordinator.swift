@@ -53,6 +53,7 @@ internal final class RecordingCoordinator {
   var telemetryRecordingEnabled: Bool { enabled }
   /// Identity of the open Ride Recording, for the durable resume marker to name.
   var activeRideRecordingId: String? { store.activeRideRecordingId }
+  var activeRideRecordingStartedAt: Int64? { enabled ? store.activeRideRecordingStartedAt : nil }
   var activeBoardId: String? { enabled ? activeConfig?.appBoardId : nil }
 
   func currentRecorder() -> SessionRecorder? { recorder }

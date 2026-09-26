@@ -1,7 +1,17 @@
+import { useHistoryFloatyStatus } from './useHistoryFloatyStatus'
 import { useCallback, useMemo, useRef, useState, type RefObject } from 'react'
 import { StyleSheet, View } from 'react-native'
 
-import { ExportIcon, TrashIcon } from 'phosphor-react-native'
+import {
+  enqueueFloatyRide,
+  retryFloatyUpload,
+  reuploadFloatyRide,
+  useFloatyStore,
+} from '@/modules/floaty/store/floatyStore'
+import { HistoryFloatyUpload, type HistoryFloatyConfirmation } from './HistoryFloatyUpload'
+import { uploadId } from '@/modules/floaty/lib/route'
+import { errorMessage } from '@/helpers/error'
+import { ExportIcon, TrashIcon, CloudArrowUpIcon } from 'phosphor-react-native'
 import { Button } from '@/components/base/Button'
 import { theme } from '@/constants/theme'
 import { FadeCardModal } from '@/components/modals/FadeCardModal'
@@ -48,7 +58,13 @@ export function HistoryRideDetail({
   onPanelHeightChange,
   listButtonRef,
 }: HistoryRideDetailProps) {
+  const floatyConnected = useFloatyStore((state) => state.identity != null)
+  const floatyStatus = useHistoryFloatyStatus()
   const [deleteVisible, setDeleteVisible] = useState(false)
+  const [floatyConfirm, setFloatyConfirm] = useState<HistoryFloatyConfirmation | null>(null)
+  const [floatyError, setFloatyError] = useState<string | null>(null)
+  const [floatyBusy, setFloatyBusy] = useState(false)
+  const floatyCopy = floatyConfirmationCopy(floatyConfirm)
   const [trimName, setTrimName] = useState('')
   const [actionsVisible, setActionsVisible] = useState(false)
   const [exportError, setExportError] = useState<string | null>(null)
@@ -154,6 +170,18 @@ export function HistoryRideDetail({
         session={session}
         samples={history.sessionSamples}
         gpsSamples={history.sessionGpsSamples}
+        accessory={
+          !favoriteMode && !trimming && floatyConnected ? (
+            <Button
+              size="sm"
+              variant="secondary"
+              label={floatyStatus(session) ?? 'Upload to Floaty'}
+              icon={CloudArrowUpIcon}
+              onPress={() => setActionsVisible(true)}
+              style={{ alignSelf: 'flex-start', marginTop: 8 }}
+            />
+          ) : undefined
+        }
         trimming={trimming}
       />
       <HistoryControls
@@ -196,8 +224,19 @@ export function HistoryRideDetail({
         title={openFavorite ? 'Favorite actions' : 'Ride actions'}
         onDismiss={() => setActionsVisible(false)}
         onDismissed={afterActionsDismissed}
-        scrollable={false}
       >
+        {!favoriteMode && (
+          <HistoryFloatyUpload
+            key={session.id}
+            session={session}
+            onConfirm={(confirmation) =>
+              dismissForAction(() => {
+                setFloatyError(null)
+                setFloatyConfirm(confirmation)
+              })
+            }
+          />
+        )}
         {(['gpx', 'csv'] as const).map((format) => (
           <Button
             key={format}
@@ -240,6 +279,33 @@ export function HistoryRideDetail({
           }
         />
       </FadeCardModal>
+      <ConfirmModal
+        visible={floatyConfirm != null}
+        {...floatyCopy}
+        loading={floatyBusy}
+        error={floatyError}
+        onCancel={() => {
+          setFloatyConfirm(null)
+        }}
+        onConfirm={async () => {
+          if (!floatyConfirm || floatyBusy) return
+          setFloatyBusy(true)
+          setFloatyError(null)
+          try {
+            const { source, uid, retry, reupload } = floatyConfirm
+            if (useFloatyStore.getState().identity?.uid !== uid)
+              throw new Error('Floaty account changed. Please try again.')
+            if (retry) retryFloatyUpload(uploadId(source))
+            else if (reupload) await reuploadFloatyRide(source, uid)
+            else await enqueueFloatyRide(source, uid)
+            setFloatyConfirm(null)
+          } catch (cause) {
+            setFloatyError(errorMessage(cause, 'Could not queue this ride.'))
+          } finally {
+            setFloatyBusy(false)
+          }
+        }}
+      />
       <InfoModal
         visible={exportError != null}
         title="Export failed"
@@ -262,4 +328,23 @@ export function HistoryRideDetail({
       />
     </>
   )
+}
+
+function floatyConfirmationCopy(confirmation: HistoryFloatyConfirmation | null) {
+  return confirmation?.reupload
+    ? {
+        title: 'Reupload this ride to Floaty?',
+        message:
+          (confirmation.comparison ? `${confirmation.comparison}\n\n` : '') +
+          'Export the recorded route again and upload it with the ride summary and your current privacy zones. This replaces the uploaded route on the same Floaty ride, preserving its name and group. Your local recording stays unchanged. Tile credit is decided by Floaty.',
+        confirmLabel: 'Super upload',
+        destructive: true,
+      }
+    : {
+        title: 'Upload ride to Floaty?',
+        message:
+          'Share this route and ride summary with your connected Floaty account. Enabled Vescape privacy zones are hidden. Your local recording stays unchanged.',
+        confirmLabel: 'Upload ride',
+        destructive: false,
+      }
 }

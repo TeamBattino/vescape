@@ -39,7 +39,7 @@ const STOP_EPSILON = 1e-6
 
 interface RouteZoomFocusProps {
   rideGpsSamples: HistoryGpsSample[]
-  routeShape: GeoJSON.Feature<GeoJSON.LineString> | null
+  routeShape: GeoJSON.Feature<GeoJSON.LineString | GeoJSON.MultiLineString> | null
   /** Everything the focused stretch needs to be redrawn in the colours the route already uses. */
   rideTelemetrySamples: TelemetrySample[]
   metric: HistoryMetricKey

@@ -578,6 +578,7 @@ class CoreForegroundService : Service() {
                     "enabled" to false,
                     "paused" to false,
                     "activeBoardId" to null,
+                    "recordingId" to null,
                     "startedAt" to null,
                     "failure" to RecordingStorageFailure.value()?.let(::recordingFailureState),
                 ),

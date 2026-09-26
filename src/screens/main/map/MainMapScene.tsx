@@ -3,6 +3,7 @@ import { Fragment, type ComponentProps, type ComponentRef, type RefObject } from
 import { ActivityIndicator, Animated, Pressable, StyleSheet, Text, View } from 'react-native'
 
 import { theme } from '@/constants/theme'
+import { useTerritoryMapStore } from '@/modules/floaty/store/territoryMapStore'
 import { PhoneHeadingMapLayer } from '@/modules/map/components/PhoneHeadingMapLayer'
 import { MAP_DEFAULTS } from '@/modules/map/constants/mapStyles'
 import type { MainViewState } from '@/screens/main/mainViewState'
@@ -150,7 +151,21 @@ export function MainMapScene({
         onMapLoadingError={onMapLoadingError}
         onPress={onPress}
         onLongPress={onLongPress}
-        onMapIdle={onMapIdle}
+        onMapIdle={(event) => {
+          const { bounds, center } = event.properties
+          if (bounds)
+            useTerritoryMapStore.setState({
+              viewport: {
+                west: bounds.sw[0],
+                south: bounds.sw[1],
+                east: bounds.ne[0],
+                north: bounds.ne[1],
+                longitude: center[0],
+                latitude: center[1],
+              },
+            })
+          onMapIdle?.(event)
+        }}
         onCameraChanged={onCameraChanged}
       >
         <Camera

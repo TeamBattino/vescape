@@ -229,3 +229,28 @@ describe('edgeDrawerContentResizeOffset', () => {
     expect(offset).toBeLessThan(edgeDrawerRestoreOffset(900, height, false))
   })
 })
+
+describe('explicit long-list dismissal', () => {
+  test('fast flings and either scroll boundary never fade, restore or close the panel', () => {
+    for (const opensFromTop of [true, false]) {
+      for (const range of [0, SHORT_RANGE, LONG_RANGE]) {
+        for (const offset of [-100000, 0, 1, 400, range, 100000]) {
+          const fraction = edgeDrawerVisibleFraction({
+            ...at(offset, range, opensFromTop),
+            dismissalMode: 'explicit',
+          })
+          expect(edgeDrawerDismissOpacity(fraction)).toBe(1)
+          for (const fullyHidden of [true, false]) {
+            expect(
+              edgeDrawerScrollEndAction({
+                fullyHidden,
+                visibleFraction: fraction,
+                dismissalMode: 'explicit',
+              }),
+            ).toBe('stay-open')
+          }
+        }
+      }
+    }
+  })
+})

@@ -1,3 +1,4 @@
+import { useFloatyStore } from '@/modules/floaty/store/floatyStore'
 import { useSettingsStore } from '@/modules/settings/store/settingsStore'
 import { AccessoryIcon } from '@/modules/accessories/constants/accessoryIcon'
 import { useLayoutEffect } from 'react'
@@ -45,6 +46,7 @@ import { useResolvedNeutralColors } from '@/hooks/useTheme'
 const appVersion = Constants.expoConfig?.version ?? DASH
 
 export default function SettingsScreen() {
+  const floatyIdentity = useFloatyStore((state) => state.identity)
   const unitSystem = useSettingsStore((state) => state.unitSystem)
   const setSetting = useSettingsStore((state) => state.set)
   const db = useSettingsDatabaseOps()
@@ -99,6 +101,19 @@ export default function SettingsScreen() {
           />
         </IconHero>
 
+        <SettingsSectionTitle>Connected services</SettingsSectionTitle>
+        <SettingsCard>
+          <SettingsRow
+            icon={MapTrifoldIcon}
+            label="Floaty"
+            hint={
+              floatyIdentity
+                ? `Connected · ${floatyIdentity.email}`
+                : 'Connect your account for tiles and ride sharing'
+            }
+            onPress={() => router.push(routes.settingsFloaty)}
+          />
+        </SettingsCard>
         <SettingsSectionTitle>Connection</SettingsSectionTitle>
 
         <SettingsCard>

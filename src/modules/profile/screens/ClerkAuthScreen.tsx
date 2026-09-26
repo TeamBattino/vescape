@@ -1,3 +1,5 @@
+import { isAccountConfigured } from '@/config/account'
+import { AccountUnavailableScreen } from './AccountUnavailableScreen'
 import { useSession } from '@clerk/expo'
 import { AuthView } from '@clerk/expo/native'
 import { useRouter } from 'expo-router'
@@ -8,6 +10,10 @@ import { theme } from '@/constants/theme'
 import { routes } from '@/navigation/routes'
 
 export function ClerkAuthScreen() {
+  return isAccountConfigured ? <ConfiguredClerkAuthScreen /> : <AccountUnavailableScreen />
+}
+
+function ConfiguredClerkAuthScreen() {
   const router = useRouter()
   const { session } = useSession()
   const didLeaveAuth = useRef(false)

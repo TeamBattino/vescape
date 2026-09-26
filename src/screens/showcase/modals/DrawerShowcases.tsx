@@ -145,18 +145,22 @@ export function EdgeDrawerVirtualizedShowcase() {
 
   return (
     <ShowcaseCard
-      name="EdgeDrawer — virtualized list"
+      name="EdgeDrawer — explicit-dismissal list"
       controls={
         <View ref={triggerRef} collapsable={false} style={styles.trigger}>
           <OpenButton label="Open 100 rows" onPress={() => setVisible(true)} />
         </View>
       }
     >
-      <Text style={styles.previewHint}>FlatList path for long lists and early pagination.</Text>
+      <Text style={styles.previewHint}>
+        Fling 100 rows in either direction: only the pinned header, grabber, backdrop or Back closes
+        the drawer.
+      </Text>
       <EdgeDrawer
         visible={visible}
         triggerRef={triggerRef}
         title="Virtualized rows"
+        dismissalMode="explicit"
         onClose={() => setVisible(false)}
         virtualizedContent={{
           data: VIRTUALIZED_ROWS,

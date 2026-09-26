@@ -36,6 +36,11 @@ internal class RecordingCoordinator(
     val telemetryRecordingEnabled: Boolean
         get() = telemetryStore != null
 
+    val activeRideRecordingId: String?
+        get() = telemetryStore?.activeRideRecordingId
+    val activeRideRecordingStartedAt: Long?
+        get() = telemetryStore?.activeRideRecordingStartedAt
+
     companion object {
         @Volatile
         private var requestedTelemetryRecordingEnabled = false

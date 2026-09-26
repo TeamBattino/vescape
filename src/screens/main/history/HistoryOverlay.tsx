@@ -1,3 +1,5 @@
+import { CommunityHistoryOverlay } from './CommunityHistoryOverlay'
+import { useHistoryFloatyStatus } from '@/screens/main/history/useHistoryFloatyStatus'
 import { useCallback, useRef, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 import type { Favorite, HistoryGpsSample, HistoryMarker } from 'vescape-core'
@@ -89,12 +91,21 @@ interface HistoryOverlayProps {
 }
 
 /** History mode: the replayed ride's panel, stats and controls, plus the ride list and media. */
-export function HistoryOverlay({
+export function HistoryOverlay(props: HistoryOverlayProps) {
+  return props.history.historyTab === 'community' ? (
+    <CommunityHistoryOverlay {...props} />
+  ) : (
+    <RecordedHistoryOverlay {...props} />
+  )
+}
+
+function RecordedHistoryOverlay({
   visible,
   history,
   panelHeight,
   onPanelHeightChange,
 }: HistoryOverlayProps) {
+  const floatyStatus = useHistoryFloatyStatus()
   const [removeConfirmVisible, setRemoveConfirmVisible] = useState(false)
   const listButtonRef = useRef<View>(null)
   const busy =
@@ -150,6 +161,7 @@ export function HistoryOverlay({
       )}
 
       <HistorySessionSheet
+        statusForSession={floatyStatus}
         visible={history.historySheetVisible}
         triggerRef={listButtonRef}
         favoriteMode={favoriteMode}

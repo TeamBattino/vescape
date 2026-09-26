@@ -3,6 +3,10 @@
 The Watch Mirror is a Wear OS companion app under `watch/wearos/`. The phone app owns the Board
 Session and pushes Watch Frames from native code; the watch only renders received frames.
 
+## Xiaomi Smart Band
+
+The Android/Mi Fitness Vela companion lives in [`watch/xiaomi-band`](../watch/xiaomi-band/README.md). It shows speed and duty on Smart Band 10 and shares the native Watch Frame producer. See its README for matching package/signature requirements, development installation, Global-band binding and the read-only protocol.
+
 ## Google Play Release
 
 Phone and Wear builds are separate signed AABs under the existing `app.vescape` Play listing:

@@ -404,7 +404,10 @@ class VescapeCoreModule : Module() {
     OnStartObserving("onAccessoryReading") { startObserving("onAccessoryReading") }
     OnStopObserving("onAccessoryReading") { stopObserving("onAccessoryReading") }
 
+    registerXiaomiBand()
+
     OnCreate {
+      expo.modules.vescapecore.watch.XiaomiBandBridge.initialize(context)
       val storageOutageEvents = StorageOutageEventBridge(
         shouldEmit = { shouldEmitToFrontend("onLiveState") },
         emit = {
@@ -1484,6 +1487,16 @@ class VescapeCoreModule : Module() {
         CoreForegroundService.reloadTelemetrySettings(context.applicationContext)
       }
     }
+  }
+
+  private fun ModuleDefinitionBuilder.registerXiaomiBand() {
+    // @parity /modules/vescape-core/src/index.ts `XiaomiBandStatus`
+    // @parity /modules/vescape-core/ios/VescapeCoreModule.swift `getXiaomiBandStatus`
+    // @platform-diff Xiaomi's Mi Fitness interconnect SDK is Android-only.
+    Function("getXiaomiBandStatus") { expo.modules.vescapecore.watch.XiaomiBandBridge.status() }
+    Function("configureXiaomiBand") { id: String? -> expo.modules.vescapecore.watch.XiaomiBandBridge.configure(id, launch = true) }
+    Function("openXiaomiBand") { expo.modules.vescapecore.watch.XiaomiBandBridge.open() }
+
   }
 
   private fun ModuleDefinitionBuilder.registerCustomAppSounds() {

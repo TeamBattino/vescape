@@ -1,4 +1,5 @@
 import type { MapPoint, MapPointCategory } from 'vescape-core'
+import type { LiveTrailShape } from '@/modules/map/lib/recordedLiveTrail'
 
 import type { makeCircleFeature, makeTrailLineString } from '@/helpers/mapGeometry'
 import type { RosterRider } from '@/modules/group-ride/lib/roster'
@@ -26,12 +27,8 @@ export interface MainMapLayersProps {
   showBuildings3d: boolean
   weatherActive: boolean
   legalLimitsActive: boolean
-  liveTrailShape: ReturnType<typeof makeTrailLineString> | null
-  rideRouteShape: {
-    type: 'Feature'
-    geometry: { type: 'LineString'; coordinates: [number, number][] }
-    properties: Record<string, never>
-  } | null
+  liveTrailShape: ReturnType<typeof makeTrailLineString> | LiveTrailShape | null
+  rideRouteShape: GeoJSON.Feature<GeoJSON.LineString | GeoJSON.MultiLineString> | null
   accuracyFix: { longitude: number; latitude: number } | null
   accuracyShape: ReturnType<typeof makeCircleFeature> | null
   gpsPuckBearingDeg: number | null

@@ -3,6 +3,8 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { ClockCountdownIcon, NavigationArrowIcon, WatchIcon } from 'phosphor-react-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import { XiaomiBandSettings } from '@/modules/settings/components/XiaomiBandSettings'
+
 import { theme } from '@/constants/theme'
 import { SettingsCard } from '@/components/settings/SettingsCard'
 import { SettingsRow } from '@/components/settings/SettingsRow'
@@ -36,6 +38,7 @@ export default function WatchSettingsScreen() {
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.content}>
         <IconHero icon={WatchIcon} description="Live telemetry on your watch while you ride." />
+        {Platform.OS === 'android' && <XiaomiBandSettings />}
         <SettingsCard>
           <SettingsRow
             icon={WatchIcon}

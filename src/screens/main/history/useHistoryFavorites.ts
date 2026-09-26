@@ -90,6 +90,13 @@ export function useHistoryFavorites(
     (tab: HistoryTab) => {
       if (tab === useMainScreenStore.getState().historyTab) return
 
+      if (tab === 'community') {
+        if (useMainScreenStore.getState().historyTab === 'history')
+          historySessionBeforeFavorite.current = useHistoryStore.getState().selectedSession
+        setHistoryTab(tab)
+        useMainScreenStore.getState().setHistorySheetVisible(true)
+        return
+      }
       if (tab === 'history') {
         setHistoryTab(tab)
         const session =
@@ -100,7 +107,10 @@ export function useHistoryFavorites(
         return
       }
 
-      historySessionBeforeFavorite.current = useHistoryStore.getState().selectedSession
+      // Community keeps the native selection in place. Returning from Community to Favorites
+      // must not replace the saved History ride with the Favorite currently behind that view.
+      if (useMainScreenStore.getState().historyTab === 'history')
+        historySessionBeforeFavorite.current = useHistoryStore.getState().selectedSession
       setHistoryTab(tab)
       const cachedLatest = useFavoriteStore.getState().favorites[0]
       if (cachedLatest) void selectFavorite(cachedLatest)

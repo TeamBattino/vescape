@@ -1,4 +1,5 @@
 import { ScrollView, StyleSheet } from 'react-native'
+import { HistoryPanelNavShowcase } from '@/screens/showcase/controls/HistoryPanelNavShowcase'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { SwatchesIcon } from 'phosphor-react-native'
 
@@ -34,6 +35,7 @@ export default function ControlsPage() {
         <FloatingBarShowcase />
         <FloatingActionPillShowcase />
         <PrevNextSelectorShowcase />
+        <HistoryPanelNavShowcase />
         <SegmentedToggleShowcase />
         <ZonePillsShowcase />
         <ExpandableCircleMenuShowcase />

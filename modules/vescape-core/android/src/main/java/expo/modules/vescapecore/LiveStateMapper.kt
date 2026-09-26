@@ -28,6 +28,8 @@ internal data class VescLiveStateSnapshot(
     val gpsError: String?,
     val recordingEnabled: Boolean,
     val recordingPaused: Boolean,
+    val recordingId: String? = null,
+    val recordingStartedAt: Long? = null,
     val remoteTiltValue: Int,
     val remoteTiltPhase: RemoteTiltPhase,
     val remoteTiltDecay: RemoteTiltDecayProgress?,
@@ -98,7 +100,10 @@ internal fun buildLiveState(snapshot: VescLiveStateSnapshot): Map<String, Any?> 
             "enabled" to snapshot.recordingEnabled,
             "paused" to snapshot.recordingPaused,
             "activeBoardId" to if (snapshot.recordingEnabled) snapshot.boardConfig?.appBoardId else null,
-            "startedAt" to null,
+            // @parity /modules/vescape-core/ios/VescapeCoreModule.swift `liveStatePayload`
+            // @parity /modules/vescape-core/src/index.ts `LiveStateEvent`
+            "recordingId" to snapshot.recordingId,
+            "startedAt" to snapshot.recordingStartedAt,
             "failure" to RecordingStorageFailure.value()?.let(::recordingFailureState),
         ),
     )

@@ -27,6 +27,7 @@ interface HistorySessionSheetProps {
   onClose: () => void
   onSelectSession: (session: HistorySession) => void
   onLoadMore: () => void
+  statusForSession?: (session: HistorySession) => string | undefined
 }
 
 export function HistorySessionSheet({
@@ -41,6 +42,7 @@ export function HistorySessionSheet({
   onClose,
   onSelectSession,
   onLoadMore,
+  statusForSession,
 }: HistorySessionSheetProps) {
   const { formatRideDetails } = useRideFormat()
   const selectedRowRef = useRef<View>(null)
@@ -79,14 +81,14 @@ export function HistorySessionSheet({
               : dateTime
           }
           subtitle={favorite ? dateTime : details}
-          details={favorite ? details : undefined}
+          details={favorite ? details : statusForSession?.(session)}
           routePoints={session.routePoints}
           selected={selected}
           onPress={() => onSelectSession(session)}
         />
       )
     },
-    [favoritesBySessionId, onSelectSession, selectedSessionId, formatRideDetails],
+    [favoritesBySessionId, onSelectSession, selectedSessionId, formatRideDetails, statusForSession],
   )
 
   const empty = (
@@ -118,6 +120,7 @@ export function HistorySessionSheet({
 
   return (
     <EdgeDrawer
+      dismissalMode="explicit"
       visible={visible}
       triggerRef={triggerRef}
       title={favoriteMode ? 'Favorites' : 'History'}

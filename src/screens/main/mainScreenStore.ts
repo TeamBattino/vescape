@@ -6,7 +6,7 @@ import type { MainViewState } from '@/screens/main/mainViewState'
 export type MapSelector = 'navigation' | 'style' | null
 
 /** Which list the history screen shows: recorded rides, or the Favorites the rider starred. */
-export type HistoryTab = 'history' | 'favorites'
+export type HistoryTab = 'history' | 'favorites' | 'community'
 
 /** The time span a rider is trimming into a Favorite. Non-null means trim mode is active. */
 export interface TrimRange {

@@ -14,7 +14,10 @@ export const DRAWER_INITIAL_OPEN_FRACTION = 0.75
 /** Below this much of the drawer left on screen the dismissal commits: it closes, never settles. */
 export const COMMIT_FRACTION = 0.45
 
+export type EdgeDrawerDismissalMode = 'scroll' | 'explicit'
+
 export interface EdgeDrawerGeometry {
+  dismissalMode?: EdgeDrawerDismissalMode
   /** Current scroll offset. */
   offset: number
   /** Maximum scroll offset — the drawer's full dismissal travel. */
@@ -52,6 +55,7 @@ export function edgeDrawerRestingPixels(range: number, height: number, opensFrom
 /** How much of the drawer is left: 1 at the opening position, 0 once it is off screen. */
 export function edgeDrawerVisibleFraction(geometry: EdgeDrawerGeometry) {
   'worklet'
+  if (geometry.dismissalMode === 'explicit') return 1
   const resting = edgeDrawerRestingPixels(geometry.range, geometry.height, geometry.opensFromTop)
   if (resting <= 0) return 0
   return clamp(edgeDrawerOnScreenPixels(geometry) / resting, 0, 1)
@@ -110,6 +114,7 @@ export function edgeDrawerRestoreOffset(
 export type EdgeDrawerScrollEndAction = 'finish' | 'close' | 'restore' | 'stay-open'
 
 interface EdgeDrawerScrollEndState {
+  dismissalMode?: EdgeDrawerDismissalMode
   fullyHidden: boolean
   visibleFraction: number
 }
@@ -118,7 +123,9 @@ interface EdgeDrawerScrollEndState {
 export function edgeDrawerScrollEndAction({
   fullyHidden,
   visibleFraction,
+  dismissalMode,
 }: EdgeDrawerScrollEndState): EdgeDrawerScrollEndAction {
+  if (dismissalMode === 'explicit') return 'stay-open'
   if (fullyHidden) return 'finish'
   if (edgeDrawerHasCommitted(visibleFraction)) return 'close'
   if (visibleFraction < 1) return 'restore'

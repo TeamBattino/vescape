@@ -1,0 +1,30 @@
+{
+  "package": "app.vescape.dev",
+  "name": "Vescape",
+  "versionName": "0.3.1",
+  "versionCode": 6,
+  "minPlatformVersion": 1200,
+  "minAPILevel": 1,
+  "icon": "/common/icon.png",
+  "deviceTypeList": ["watch"],
+  "features": [
+    {
+      "name": "system.interconnect"
+    },
+    {
+      "name": "system.brightness"
+    }
+  ],
+  "config": {
+    "logLevel": "warn",
+    "designWidth": 212
+  },
+  "router": {
+    "entry": "pages/home",
+    "pages": {
+      "pages/home": {
+        "component": "home"
+      }
+    }
+  }
+}

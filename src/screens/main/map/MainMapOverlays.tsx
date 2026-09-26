@@ -1,3 +1,9 @@
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { useFloatyStore } from '@/modules/floaty/store/floatyStore'
+import { useMainScreenStore } from '@/screens/main/mainScreenStore'
+import { useAboveStripBottom } from '@/screens/main/overlays/BottomTelemetryStrip'
+import { FloatyTerritoryDetails } from '@/modules/floaty/components/FloatyTerritoryDetails'
+import { useTerritoryMapStore } from '@/modules/floaty/store/territoryMapStore'
 import { StyleSheet, View } from 'react-native'
 
 import { Text } from '@/components/base/Text'
@@ -38,9 +44,29 @@ export function MainMapOverlays({
   onCloseLegalCountry: () => void
   onOffscreenIndicatorPress: (indicator: OffscreenMapIndicatorState) => void
 }) {
+  const insets = useSafeAreaInsets()
+  const identity = useFloatyStore((state) => state.identity)
+  const mode = useMainScreenStore((state) => state.mode)
+  const historyPanelHeight = useMainScreenStore((state) => state.historyPanelHeight)
+  const aboveTelemetryStrip = useAboveStripBottom()
+  // Keep map status above recording controls AND the connection-status pill,
+  // or above the measured history panel.
+  const territoryStatusBottom =
+    mode === 'telemetry'
+      ? aboveTelemetryStrip + 110
+      : mode === 'history'
+        ? Math.max(28, historyPanelHeight + 12)
+        : 28
+  const territoryEnabled = useFloatyStore((state) => state.preferences.territory)
+  const territoryLoadStatus = useTerritoryMapStore((state) => state.loadStatus)
+  const territorySelection = useTerritoryMapStore((state) => state.selected)
   const { formatHistoryMarker } = useRideFormat()
   return (
     <>
+      <FloatyTerritoryDetails
+        selection={identity && !weatherActive && !legalLimitsActive ? territorySelection : null}
+        onDismiss={() => useTerritoryMapStore.setState({ selected: null })}
+      />
       <InfoModal
         visible={selectedHistoryMarker != null}
         title={
@@ -56,6 +82,14 @@ export function MainMapOverlays({
         country={legalLimitsActive ? selectedLegalCountry : null}
         onClose={onCloseLegalCountry}
       />
+      {identity && territoryEnabled && !weatherActive && !legalLimitsActive && (
+        <Text
+          style={[styles.territoryAttribution, { bottom: territoryStatusBottom }]}
+          pointerEvents="none"
+        >
+          {territoryLoadStatus ?? 'Territory © Floaty'}
+        </Text>
+      )}
       {weatherActive ? (
         <Text style={styles.radarAttribution} pointerEvents="none">
           Weather data by RainViewer
@@ -109,6 +143,18 @@ const styles = StyleSheet.create({
     width: EDGE_GUARD_WIDTH,
     backgroundColor: theme.alpha(theme.palette.mono.black, 0),
     zIndex: 3,
+  },
+  territoryAttribution: {
+    position: 'absolute',
+    left: 48,
+    right: 48,
+    color: theme.neutral.textSecondary,
+    fontSize: 10,
+    textAlign: 'center',
+    backgroundColor: theme.neutral.surfaceDeep,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 4,
   },
   radarAttribution: {
     position: 'absolute',

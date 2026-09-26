@@ -77,6 +77,8 @@ export interface MainMapHandle {
 
 /** Everything only the history layers care about; MainMap passes it straight through. */
 export interface MainMapHistoryProps {
+  /** A shared route has geometry but no fabricated timestamped telemetry. */
+  sharedRoute?: [number, number][][]
   active: boolean
   selectionKey: string | null
   preview: ({ key: string } & HistoryPreviewTarget) | null
@@ -212,9 +214,9 @@ export const MainMap = memo(
       riderFocusRows,
       mapRiders,
       trackedMapPoints,
-      rideRoute,
+      rideRoute: nativeRideRoute,
       liveTrailShape,
-      rideRouteShape,
+      rideRouteShape: nativeRideRouteShape,
     } = useLiveMapModel({
       liveLocations,
       latestApproximateLocation,
@@ -226,6 +228,22 @@ export const MainMap = memo(
       directionPoint,
     })
 
+    const rideRoute = useMemo(
+      () => history.sharedRoute?.flat() ?? nativeRideRoute,
+      [history.sharedRoute, nativeRideRoute],
+    )
+    const rideRouteShape = useMemo<GeoJSON.Feature<
+      GeoJSON.LineString | GeoJSON.MultiLineString
+    > | null>(() => {
+      if (history.sharedRoute === undefined) return nativeRideRouteShape
+      return history.sharedRoute.length
+        ? {
+            type: 'Feature',
+            properties: {},
+            geometry: { type: 'MultiLineString', coordinates: history.sharedRoute },
+          }
+        : null
+    }, [history.sharedRoute, nativeRideRouteShape])
     const chartZoomRoute = useChartZoomRoute(history.gpsSamples)
     // The panel covers the bottom of the map and grows as the rider opens metrics; the route is
     // framed into what is left, so opening one reframes rather than hiding half the ride.

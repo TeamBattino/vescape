@@ -1,5 +1,5 @@
 import { useFormat } from '@/hooks/useFormat'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { Pressable, StyleSheet, View } from 'react-native'
 import { Text } from '@/components/base/Text'
 import {
@@ -27,6 +27,7 @@ import { DASH } from '@/helpers/format'
 
 interface HistoryStatsBarProps {
   session: HistorySession
+  accessory?: ReactNode
 }
 
 interface StatItem {
@@ -38,7 +39,7 @@ interface StatItem {
   accent: ThemeColor
 }
 
-export function HistoryStatsBar({ session }: HistoryStatsBarProps) {
+export function HistoryStatsBar({ session, accessory }: HistoryStatsBarProps) {
   const insets = useSafeAreaInsets()
   const [expanded, setExpanded] = useState(false)
   const stats = useSessionStats(session)
@@ -88,6 +89,7 @@ export function HistoryStatsBar({ session }: HistoryStatsBarProps) {
           </View>
         )}
       </Pressable>
+      {accessory}
     </View>
   )
 }

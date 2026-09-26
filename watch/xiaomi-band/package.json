@@ -1,0 +1,12 @@
+{
+  "name": "vescape-xiaomi-band",
+  "version": "0.3.1",
+  "private": true,
+  "scripts": {
+    "build": "aiot build",
+    "test": "bun test src/common"
+  },
+  "devDependencies": {
+    "aiot-toolkit": "2.0.5"
+  }
+}

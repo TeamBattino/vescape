@@ -10,7 +10,7 @@ import {
   WarningCircleIcon,
   type Icon,
 } from 'phosphor-react-native'
-import { useCallback } from 'react'
+import { useCallback, useState } from 'react'
 import { isReplayBoardId, type LinkIntegrity } from 'vescape-core'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -20,6 +20,8 @@ import {
   FloatingStatusPill,
   type FloatingStatusPillModel,
 } from '@/components/controls/FloatingBar'
+import { ConfirmModal } from '@/components/modals/ConfirmModal'
+import { errorMessage } from '@/helpers/error'
 import { routes } from '@/navigation/routes'
 import { showDevControls } from '@/config/env'
 import type { Board } from '@/modules/board/store/boardStore'
@@ -218,14 +220,36 @@ export function FloatingBar({
       })),
     )
 
+  const [confirmEnd, setConfirmEnd] = useState(false)
+  const [endError, setEndError] = useState<string | null>(null)
+  const endRide = useCallback(() => {
+    try {
+      stop()
+      const state = useBleStore.getState()
+      if (state.recordingFailure) {
+        setEndError('Recording could not be saved. Check the recording error before trying again.')
+        return
+      }
+      if (state.telemetryRecordingEnabled) {
+        setEndError('The ride is still recording. Please try ending it again.')
+        return
+      }
+      setConfirmEnd(false)
+      setEndError(null)
+    } catch (error) {
+      setEndError(errorMessage(error, 'Could not end the ride. Please try again.'))
+    }
+  }, [stop])
+
   const toggleRecord = useCallback(() => {
     if (!recording && !canToggleRecording(bleStatus)) return
     if (recording) {
-      stop()
+      setEndError(null)
+      setConfirmEnd(true)
     } else {
       start()
     }
-  }, [bleStatus, recording, start, stop])
+  }, [bleStatus, recording, start])
 
   const pill = getStatusPill(
     bleStatus,
@@ -262,23 +286,38 @@ export function FloatingBar({
         : null
 
   return (
-    <FloatingBarFrame bottomOffset={bottomOffset}>
-      {/* Connection state — "No board added", "Connecting…", link warnings — is rider tooling that
+    <>
+      <FloatingBarFrame bottomOffset={bottomOffset}>
+        {/* Connection state — "No board added", "Connecting…", link warnings — is rider tooling that
           only appears when something is wrong or in flight. None of it belongs in a store frame. */}
-      {uiPill && showDevControls ? <FloatingStatusPill pill={uiPill} /> : null}
-      {/* The REC control is rider tooling, not product surface — a store screenshot shows the ride,
+        {uiPill && showDevControls ? <FloatingStatusPill pill={uiPill} /> : null}
+        {/* The REC control is rider tooling, not product surface — a store screenshot shows the ride,
           not the capture affordance. */}
-      {showDevControls && (
-        <FloatingActionPill
-          icon={recording ? (paused ? PauseIcon : StopIcon) : RecordIcon}
-          label={recording ? (paused ? 'PAUSED' : 'STOP') : 'REC'}
-          active={recording}
-          paused={paused}
-          disabled={!recording && (!canToggleRecording(bleStatus) || recordingFailure != null)}
-          onPress={toggleRecord}
-          testID="floating-bar-record"
-        />
-      )}
-    </FloatingBarFrame>
+        {showDevControls && (
+          <FloatingActionPill
+            icon={recording ? (paused ? PauseIcon : StopIcon) : RecordIcon}
+            label={recording ? 'End ride' : 'REC'}
+            active={recording}
+            paused={paused}
+            disabled={!recording && (!canToggleRecording(bleStatus) || recordingFailure != null)}
+            onPress={toggleRecord}
+            testID="floating-bar-record"
+          />
+        )}
+      </FloatingBarFrame>
+      <ConfirmModal
+        visible={confirmEnd}
+        title="End ride?"
+        message="End this recording and save it to Ride History. Your board stays connected."
+        confirmLabel="End ride"
+        cancelLabel="Keep recording"
+        error={endError}
+        onConfirm={endRide}
+        onCancel={() => {
+          setConfirmEnd(false)
+          setEndError(null)
+        }}
+      />
+    </>
   )
 }

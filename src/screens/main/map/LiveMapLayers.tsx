@@ -33,12 +33,6 @@ export function LiveMapLayers({
   const accuracyFillColor = theme.alpha(accents.violet.color, 0.12)
   const gpsPointColor = riderColor ?? accents.purple.color
   const trailColor = riderColor ?? accents.violet.color
-  const trailGradientStart = riderColor
-    ? theme.alpha(riderColor, 0)
-    : theme.alpha(accents.violet.color, 0)
-  const trailGradientEnd = riderColor
-    ? theme.alpha(riderColor, 0.85)
-    : theme.alpha(accents.violet.color, 0.85)
   const gpsPuckPositionShape = useMemo(
     () =>
       accuracyFix
@@ -76,7 +70,10 @@ export function LiveMapLayers({
   return (
     <>
       {liveTrailShape && (
-        <ShapeSource id="center-live-trail-source" shape={liveTrailShape} lineMetrics>
+        // This is the complete recording, including separate segments around pauses. Fading
+        // line-progress makes every segment's beginning disappear and leaves only its dark
+        // satellite casing. Preserve small loops at distant zooms and paint every segment fully.
+        <ShapeSource id="center-live-trail-source" shape={liveTrailShape} tolerance={0}>
           <LineLayer
             id="center-live-trail-casing"
             style={{
@@ -88,20 +85,12 @@ export function LiveMapLayers({
           />
           <LineLayer
             id="center-live-trail-line"
+            aboveLayerID="center-live-trail-casing"
             style={{
               lineColor: trailColor,
               lineWidth: MAP_DEFAULTS.trailWidth,
               lineCap: 'round',
               lineJoin: 'round',
-              lineGradient: [
-                'interpolate',
-                ['linear'],
-                ['line-progress'],
-                0,
-                trailGradientStart,
-                1,
-                trailGradientEnd,
-              ],
             }}
           />
         </ShapeSource>

@@ -17,6 +17,7 @@ import {
   buildRiderTargetPoints,
 } from '@/screens/main/map/trackedMapPoints'
 import { useResolvedAccentColors } from '@/hooks/useTheme'
+import { useRecordedLiveTrail } from '@/screens/main/map/useRecordedLiveTrail'
 
 /**
  * Grid the offscreen indicators are tracked on: about a metre.
@@ -147,9 +148,15 @@ export function useLiveMapModel({
         : null,
     [accuracyFix, accuracyRadiusM],
   )
+  const recordedTrail = useRecordedLiveTrail()
   const liveTrailShape = useMemo(
-    () => (liveLocations.length >= 2 ? makeTrailLineString(liveLocations) : null),
-    [liveLocations],
+    () =>
+      recordedTrail.active
+        ? recordedTrail.shape
+        : liveLocations.length >= 2
+          ? makeTrailLineString(liveLocations)
+          : null,
+    [liveLocations, recordedTrail],
   )
   const rideRouteShape = useMemo(
     () =>

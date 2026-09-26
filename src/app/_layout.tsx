@@ -9,7 +9,8 @@ import { useFonts } from 'expo-font'
 import { Stack } from 'expo-router/js-stack'
 import * as SplashScreen from 'expo-splash-screen'
 import { StatusBar } from 'expo-status-bar'
-import { useEffect } from 'react'
+import { useEffect, type ReactNode } from 'react'
+import { clerkPublishableKey, isAccountConfigured } from '@/config/account'
 import { View } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { configureReanimatedLogger } from 'react-native-reanimated'
@@ -22,6 +23,7 @@ import { initSentry } from '@/config/sentry'
 import { stackScreens } from '@/navigation/routes'
 import { startAccessoryStateMirror } from '@/modules/accessories/store/accessoryStore'
 import { startAlertsBoardSync } from '@/bootstrap/alertsBoardSync'
+import { startFloatySync } from '@/bootstrap/floatySync'
 import { startAppDataSync } from '@/bootstrap/appDataSync'
 import { useSessionFixtures } from '@/bootstrap/sessionFixtures'
 import { startBoardConfigValuesSync } from '@/modules/board/store/boardConfigValuesStore'
@@ -48,12 +50,17 @@ import { neutralColors, theme } from '@/constants/theme'
 import { DeviceAuthSync } from '@/modules/profile/components/DeviceAuthSync'
 import { AppStorageFailureBanner } from '@/screens/AppStorageFailureBanner'
 
-const clerkPublishableKey = requireClerkPublishableKey()
-
-function requireClerkPublishableKey(): string {
-  const key = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY
-  if (!key) throw new Error('EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY is not configured')
-  return key
+function AccountProvider({ children }: { children: ReactNode }) {
+  if (!clerkPublishableKey) return children
+  return (
+    <ClerkProvider
+      publishableKey={clerkPublishableKey}
+      tokenCache={tokenCache}
+      __experimental_resourceCache={resourceCache}
+    >
+      {children}
+    </ClerkProvider>
+  )
 }
 
 // Keep the native splash visible until Raleway loads so there is no font-flash
@@ -101,6 +108,7 @@ function RootLayout() {
     setGroupRideSoundPlayer(playSelectedAppSound)
     useGroupRideStore.getState().startObserving()
     const stopAppDataSync = startAppDataSync()
+    const stopFloatySync = startFloatySync()
     const stopBoardWarningsSync = startBoardWarningsSync()
     const stopVescFaultsSync = startVescFaultsSync()
     const stopBoardConfigValuesSync = startBoardConfigValuesSync()
@@ -116,6 +124,7 @@ function RootLayout() {
       useGroupRideStore.getState().stopObserving()
       setGroupRideSoundPlayer(null)
       stopAppDataSync()
+      stopFloatySync()
       stopBoardWarningsSync()
       stopVescFaultsSync()
       stopBoardConfigValuesSync()
@@ -136,15 +145,9 @@ function RootLayout() {
   if (!fixturesReady) return null
 
   return (
-    <ClerkProvider
-      publishableKey={clerkPublishableKey}
-      tokenCache={tokenCache}
-      // Keeps the signed-in identity readable offline — losing connectivity must not
-      // blank the account UI or look like a sign-out.
-      __experimental_resourceCache={resourceCache}
-    >
+    <AccountProvider>
       <UnitSystemContext value={unitSystem}>
-        <DeviceAuthSync />
+        {isAccountConfigured && <DeviceAuthSync />}
         <BoardConfigChangeNoticeModal />
         <DiagnosticErrorBoundary>
           <GestureHandlerRootView style={{ flex: 1 }}>
@@ -168,6 +171,10 @@ function RootLayout() {
                 Liquid Glass); the JS header owns back/dismiss instead. */}
               <Stack.Screen name={stackScreens.signIn} options={{ title: 'Sign in' }} />
               <Stack.Screen name={stackScreens.account} options={{ headerShown: false }} />
+              <Stack.Screen
+                name={stackScreens.settingsFloaty}
+                options={{ title: 'Floaty account' }}
+              />
               <Stack.Screen name={stackScreens.settings} options={{ title: 'Settings' }} />
               <Stack.Screen name={stackScreens.settingsDev} options={{ title: 'Dev' }} />
               <Stack.Screen
@@ -275,7 +282,7 @@ function RootLayout() {
           </GestureHandlerRootView>
         </DiagnosticErrorBoundary>
       </UnitSystemContext>
-    </ClerkProvider>
+    </AccountProvider>
   )
 }
 

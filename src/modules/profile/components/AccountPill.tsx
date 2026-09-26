@@ -1,3 +1,4 @@
+import { isAccountConfigured } from '@/config/account'
 import { useUser } from '@clerk/expo'
 import { Image } from 'expo-image'
 import { useRouter } from 'expo-router'
@@ -21,7 +22,18 @@ interface AccountPillProps {
  * Device Token exchange turns the pill into a retry button, because until it succeeds the account
  * buys the Rider nothing.
  */
-export function AccountPill({ onNavigate }: AccountPillProps) {
+export function AccountPill(props: AccountPillProps) {
+  return isAccountConfigured ? (
+    <ConfiguredAccountPill {...props} />
+  ) : (
+    <View style={styles.pill}>
+      <UserCircleIcon size={18} color={theme.settingsIcon.account} weight="duotone" />
+      <Text style={styles.label}>Local mode · development</Text>
+    </View>
+  )
+}
+
+function ConfiguredAccountPill({ onNavigate }: AccountPillProps) {
   const router = useRouter()
   const { isLoaded, isSignedIn, user } = useUser()
   const deviceAuthStatus = useDeviceAuthStore((s) => s.status)

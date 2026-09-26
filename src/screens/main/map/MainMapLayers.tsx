@@ -1,5 +1,6 @@
 import { FillExtrusionLayer, RasterLayer, RasterSource } from '@rnmapbox/maps'
 
+import { FloatyMainMapLayer } from '@/screens/main/map/FloatyMainMapLayer'
 import { MAPY_TILE_URL_TEMPLATE } from '@/config/mapy'
 import { theme } from '@/constants/theme'
 import { rosterRiderColor } from '@/modules/group-ride/lib/riderColor'
@@ -103,6 +104,9 @@ export function MainMapLayers(props: MainMapLayersProps) {
   return (
     <>
       <BaseTerrainLayers isMapy={isMapy} isOneDark={isOneDark} showBuildings3d={showBuildings3d} />
+      {!weatherActive && !legalLimitsActive && (
+        <FloatyMainMapLayer onSuppressNextMapPress={props.onSuppressNextMapPress} />
+      )}
       <RainViewerOverlay visible={weatherActive} />
       <RadarRangeRings visible={weatherActive} fix={props.accuracyFix} />
       {legalLimitsActive ? <LegalLimitsMapLayer onSelectCountry={onSelectLegalCountry} /> : null}

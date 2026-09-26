@@ -858,6 +858,10 @@ internal final class BoardSessionController: VescGattListener {
   func telemetryRecordingEnabled() -> Bool { recordingCoordinator.telemetryRecordingEnabled }
   func recordingPaused() -> Bool { idlePauseDetector.isPaused }
   func recordingActiveBoardId() -> String? { recordingCoordinator.activeBoardId }
+  func recordingId() -> String? {
+    recordingCoordinator.telemetryRecordingEnabled ? recordingCoordinator.activeRideRecordingId : nil
+  }
+  func recordingStartedAt() -> Int64? { recordingCoordinator.activeRideRecordingStartedAt }
 
   /// The rider has the app in front of them. Drives the `map` half of GPS demand, so a backgrounded
   /// app with no ride in progress stops paying for fixes nobody is looking at.

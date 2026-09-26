@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, type ReactNode } from 'react'
 import type { HistoryGpsSample, TelemetrySample } from 'vescape-core'
 
 import type { ChartTimeRange } from '@/components/charts/line/types'
@@ -14,6 +14,7 @@ interface RangeStatsBarProps {
   gpsSamples: HistoryGpsSample[]
   /** Trimming makes the drag the range; otherwise the chart's zoom window is. */
   trimming: boolean
+  accessory?: ReactNode
 }
 
 /**
@@ -24,7 +25,13 @@ interface RangeStatsBarProps {
  * only this bar. Summarising is one pass over the ride's samples — cheap per event, not something
  * to run per frame of a pinch, which is why the zoom arrives already settled.
  */
-export function RangeStatsBar({ session, samples, gpsSamples, trimming }: RangeStatsBarProps) {
+export function RangeStatsBar({
+  session,
+  samples,
+  gpsSamples,
+  trimming,
+  accessory,
+}: RangeStatsBarProps) {
   const trimRange = useMainScreenStore((s) => s.trimRange)
   const zoomRange = useSettledZoomWindow()
   const range: ChartTimeRange | null = trimming ? trimRange : zoomRange
@@ -50,5 +57,5 @@ export function RangeStatsBar({ session, samples, gpsSamples, trimming }: RangeS
     }
   }, [range, session, sortedGps, sortedSamples])
 
-  return <HistoryStatsBar session={rangeSession} />
+  return <HistoryStatsBar session={rangeSession} accessory={accessory} />
 }

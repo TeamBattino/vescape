@@ -1,3 +1,5 @@
+import { isAccountConfigured } from '@/config/account'
+import { AccountUnavailableScreen } from './AccountUnavailableScreen'
 import { useAuth, useUser } from '@clerk/expo'
 import { useNetworkState } from 'expo-network'
 import { useRouter } from 'expo-router'
@@ -12,6 +14,10 @@ import { routes } from '@/navigation/routes'
 import { revokeDeviceCredential } from 'vescape-core'
 
 export function ClerkAccountScreen() {
+  return isAccountConfigured ? <ConfiguredClerkAccountScreen /> : <AccountUnavailableScreen />
+}
+
+function ConfiguredClerkAccountScreen() {
   const router = useRouter()
   const { isLoaded, isSignedIn, signOut } = useAuth({ treatPendingAsSignedOut: false })
   const { user } = useUser()

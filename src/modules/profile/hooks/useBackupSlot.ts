@@ -1,3 +1,4 @@
+import { isAccountConfigured } from '@/config/account'
 import { useUser } from '@clerk/expo'
 
 import type { BackupSlot } from '@/modules/profile/lib/backupSlot'
@@ -13,7 +14,16 @@ import type { BackupSlot } from '@/modules/profile/lib/backupSlot'
  * `signedOut` (the cell states the fact and offers sign-in, without claiming an account would
  * start a backup); a signed-in one reads as `unavailable`.
  */
-export function useBackupSlot(): BackupSlot {
+function useConfiguredBackupSlot(): BackupSlot {
   const { isSignedIn } = useUser()
   return isSignedIn ? { kind: 'unavailable' } : { kind: 'signedOut' }
 }
+
+function useUnavailableBackupSlot(): BackupSlot {
+  return { kind: 'unavailable' }
+}
+
+// Build-time selection; hook order cannot change during a session.
+export const useBackupSlot = isAccountConfigured
+  ? useConfiguredBackupSlot
+  : useUnavailableBackupSlot

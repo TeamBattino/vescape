@@ -156,6 +156,10 @@ class TelemetryRepository private constructor(context: Context) {
   val activeRideRecordingId: String?
     get() = currentRecording?.id
 
+  // @parity /modules/vescape-core/ios/telemetry/TelemetryRepository.swift `activeRideRecordingStartedAt`
+  val activeRideRecordingStartedAt: Long?
+    get() = currentRecording?.startedAtMs
+
   init {
     // Once per process, before any Board Session can have minted a recording: a row left open by a
     // process that died is invisible to Ride History until something closes it, and on Android

@@ -1,6 +1,8 @@
+import { useFloatyStore } from '@/modules/floaty/store/floatyStore'
 import { StyleSheet, View } from 'react-native'
 import {
   ArrowLeftIcon,
+  UsersThreeIcon,
   CheckIcon,
   ClockCounterClockwiseIcon,
   PencilSimpleIcon,
@@ -56,6 +58,7 @@ export function HistoryControls({
   onSaveTrim,
 }: HistoryControlsProps) {
   const insets = useSafeAreaInsets()
+  const communityAvailable = useFloatyStore((state) => state.identity != null)
 
   if (trimming) {
     return (
@@ -134,6 +137,18 @@ export function HistoryControls({
               testID="history-tab-favorites"
               onPress={() => onSelectTab('favorites')}
             />
+            {communityAvailable && (
+              <PillSelectorItem
+                id="community"
+                label="Community"
+                icon={UsersThreeIcon}
+                activeWidth={132}
+                inactiveWidth={46}
+                color={theme.palette.green}
+                testID="history-tab-community"
+                onPress={() => onSelectTab('community')}
+              />
+            )}
           </PillSelector>
         </View>
         <View style={styles.actions}>

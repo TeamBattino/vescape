@@ -1,3 +1,6 @@
+import { FloatyTerritoryDetails } from '@/modules/floaty/components/FloatyTerritoryDetails'
+import type { FloatyTerritorySelection } from '@/modules/floaty/lib/territory'
+import { FloatyMapLayers } from '@/modules/floaty/components/FloatyMapLayers'
 import Mapbox, { Camera, MapView } from '@rnmapbox/maps'
 import { SlidersHorizontalIcon } from 'phosphor-react-native'
 import { useCallback, useRef, useState, type ComponentRef } from 'react'
@@ -58,6 +61,8 @@ const HISTORY_METRIC_OPTIONS: { key: HistoryMetricKey; label: string }[] = [
 ]
 
 export default function MapComponentsShowcase() {
+  const [territoryDetail, setTerritoryDetail] = useState<FloatyTerritorySelection | null>(null)
+  const [floatyPreview, setFloatyPreview] = useState(false)
   const [styleKey, setStyleKey] = useState<MapStyleKey>('onedark')
   const resolvedTheme = useThemeStore((state) => state.resolvedTheme)
   const [styleExpanded, setStyleExpanded] = useState(false)
@@ -185,6 +190,14 @@ export default function MapComponentsShowcase() {
           onOpenMedia={(asset) => setLastEvent(`Media: ${asset.filename}`)}
           highContrastRoutes={isSatellite}
         />
+        {floatyPreview && (
+          <FloatyMapLayers
+            territory
+            heatmap
+            prefix="showcase-floaty"
+            onTerritoryPress={setTerritoryDetail}
+          />
+        )}
       </MapView>
 
       <View style={styles.topRight} pointerEvents="box-none">
@@ -223,12 +236,21 @@ export default function MapComponentsShowcase() {
         </View>
       </View>
 
+      <FloatyTerritoryDetails
+        selection={territoryDetail}
+        onDismiss={() => setTerritoryDetail(null)}
+      />
       <EdgeDrawer
         visible={sheetVisible}
         triggerRef={moreTriggerRef}
         title="Map options"
         onClose={() => setSheetVisible(false)}
       >
+        <ToggleRow
+          label="Floaty territory and heatmap"
+          value={floatyPreview}
+          onToggle={setFloatyPreview}
+        />
         <ToggleRow label="Weather radar" value={weatherActive} onToggle={setWeatherActive} />
         <ToggleRow label="Legal limits" value={legalLimitsActive} onToggle={setLegalLimitsActive} />
         <ChipRow

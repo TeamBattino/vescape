@@ -421,8 +421,11 @@ internal class BoardSessionController(private val service: CoreForegroundService
             scheduler = scheduler,
             snapshot = ::watchSnapshot,
             isStale = { telemetry != null && isTelemetryStale() },
-            canPush = ::canPushWatchFrame,
-            push = watchPusher::pushFrame,
+            canPush = { canPushWatchFrame() || expo.modules.vescapecore.watch.XiaomiBandBridge.canPush() },
+            push = { bytes ->
+                if (canPushWatchFrame()) watchPusher.pushFrame(bytes)
+                expo.modules.vescapecore.watch.XiaomiBandBridge.push(bytes)
+            },
             intervalMs = WATCH_FRAME_INTERVAL_MS,
         )
     }
@@ -828,6 +831,7 @@ private var wearAutoLaunchOnConnect = true
     // --- Android Service lifecycle hooks (driven by CoreForegroundService) ---
 
     fun onCreate() {
+        expo.modules.vescapecore.watch.XiaomiBandBridge.initialize(service.applicationContext)
         BatterySocEstimator.init(service)
         DiagnosticReporter.initialize(service)
         notificationController.createChannel()
@@ -3431,6 +3435,8 @@ private var wearAutoLaunchOnConnect = true
                 gpsError = gpsError,
                 recordingEnabled = recordingCoordinator.telemetryRecordingEnabled,
                 recordingPaused = idlePauseDetector.isPaused,
+                recordingId = recordingCoordinator.activeRideRecordingId,
+                recordingStartedAt = recordingCoordinator.activeRideRecordingStartedAt,
                 remoteTiltValue = remoteTiltController.currentValue,
                 remoteTiltPhase = remoteTiltController.phase,
                 remoteTiltDecay = remoteTiltController.decayProgress,

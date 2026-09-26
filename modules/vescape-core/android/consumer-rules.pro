@@ -1,0 +1,12 @@
+-keeppackagenames com.xiaomi.xms.wearable
+-keep class com.xiaomi.xms.wearable.node.**{*;}
+-keep class com.xiaomi.xms.wearable.message.**{*;}
+-keep class com.xiaomi.xms.wearable.auth.**{*;}
+-keep class com.xiaomi.xms.wearable.exception.**{*;}
+-keep class com.xiaomi.xms.wearable.service.**{*;}
+-keep class com.xiaomi.xms.wearable.notify.**{*;}
+-keep class com.xiaomi.xms.wearable.Status{*;}
+-keep class com.xiaomi.xms.wearable.tasks.Task{*;}
+-keep class com.xiaomi.xms.wearable.tasks.OnFailureListener{*;}
+-keep class com.xiaomi.xms.wearable.tasks.OnSuccessListener{*;}
+-keep class com.xiaomi.xms.wearable.Wearable{*;}

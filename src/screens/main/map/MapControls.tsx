@@ -1,4 +1,11 @@
-import type { RefObject } from 'react'
+import { HexagonIcon } from 'phosphor-react-native'
+import { IconButton } from '@/components/base/IconButton'
+import { theme } from '@/constants/theme'
+import { setFloatyPreferences, useFloatyStore } from '@/modules/floaty/store/floatyStore'
+import { useState, type RefObject } from 'react'
+import { InfoModal } from '@/components/modals/InfoModal'
+import { useTriggerRef } from '@/components/overlays/measureTrigger'
+import { CommunityMapDrawer } from './CommunityMapDrawer'
 import { Pressable, StyleSheet, View } from 'react-native'
 import type { SharedValue } from 'react-native-reanimated'
 
@@ -21,7 +28,7 @@ interface MapControlsProps {
   setMapSelector: (selector: MapSelector) => void
 }
 
-/** The two map selectors pinned to the left edge: camera behaviour and basemap style. */
+/** Main-map overlay, camera, and basemap controls pinned to the left edge. */
 export function MapControls({
   mode,
   mapRef,
@@ -33,6 +40,12 @@ export function MapControls({
   mapSelector,
   setMapSelector,
 }: MapControlsProps) {
+  const identity = useFloatyStore((state) => state.identity)
+  const [communityOpen, setCommunityOpen] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const communityTrigger = useTriggerRef()
+  const territory = useFloatyStore((state) => state.preferences.territory)
+  const showFloatyTiles = identity != null && mode !== 'weather' && mode !== 'legalLimits'
   const showNavigationSelector = mode !== 'history' && mode !== 'weather' && mode !== 'legalLimits'
   const navigationExpanded = showNavigationSelector && mapSelector === 'navigation'
   const styleExpanded = mapSelector === 'style'
@@ -51,6 +64,35 @@ export function MapControls({
         />
       ) : null}
       <View pointerEvents="box-none" style={styles.mapSelectors}>
+        {showFloatyTiles && (
+          <View ref={communityTrigger} collapsable={false}>
+            <IconButton
+              icon={HexagonIcon}
+              accessibilityLabel={
+                territory ? 'Hide Floaty territory tiles' : 'Show Floaty territory tiles'
+              }
+              accent={territory ? theme.palette.green.color : undefined}
+              testID="main-floaty-button"
+              accessibilityHint="Hold for map layers."
+              onPress={() => {
+                setMapSelector(null)
+                try {
+                  setFloatyPreferences({
+                    territory: !useFloatyStore.getState().preferences.territory,
+                  })
+                } catch (failure) {
+                  setError(
+                    failure instanceof Error ? failure.message : 'Could not update map layers.',
+                  )
+                }
+              }}
+              onLongPress={() => {
+                setMapSelector(null)
+                setCommunityOpen(true)
+              }}
+            />
+          </View>
+        )}
         {showNavigationSelector ? (
           <MapOrientationSelector
             activeMode={mapOrientationMode}
@@ -74,6 +116,20 @@ export function MapControls({
           onSelect={setMapStyleKey}
         />
       </View>
+      {identity && (
+        <CommunityMapDrawer
+          key={identity.uid}
+          visible={communityOpen && showFloatyTiles}
+          triggerRef={communityTrigger}
+          onClose={() => setCommunityOpen(false)}
+        />
+      )}
+      <InfoModal
+        visible={error != null}
+        title="Map layers"
+        message={error ?? ''}
+        onDismiss={() => setError(null)}
+      />
     </View>
   )
 }

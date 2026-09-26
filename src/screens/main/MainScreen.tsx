@@ -1,3 +1,5 @@
+import { useFloatyStore } from '@/modules/floaty/store/floatyStore'
+import { decodeRouteSegments } from '@/modules/floaty/lib/route'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { ActivityIndicator, View, StyleSheet } from 'react-native'
 import { useSharedValue } from 'react-native-reanimated'
@@ -93,6 +95,16 @@ export function MainScreen({
   const cameraHeading = useSharedValue(0)
   const selectorHeading = useSharedValue(0)
   const controller = useMainScreenController({ mapRef })
+  const remoteRide = useFloatyStore((state) => (state.identity ? state.selectedRide : null))
+  const communityMode = controller.historyTab === 'community'
+  const communityRoute = useMemo(() => {
+    if (!communityMode) return undefined
+    try {
+      return remoteRide?.polyline ? decodeRouteSegments(remoteRide.polyline) : []
+    } catch {
+      return []
+    }
+  }, [communityMode, remoteRide])
   const handleHeadingChange = useCallback(
     (heading: number) => {
       cameraHeading.set(heading)
@@ -144,13 +156,18 @@ export function MainScreen({
   const mapHistoryProps = useMemo(
     () => ({
       active: controller.historyActive,
-      selectionKey: controller.selectedSession?.id ?? null,
-      preview: controller.historyPreview,
-      previewRoute: controller.historyPreviewRoute,
-      gpsSamples: controller.sessionGpsSamples,
-      telemetrySamples: controller.sessionSamples,
-      markers: controller.sessionMarkers,
-      mediaAssets: controller.mediaHistory.assets,
+      selectionKey: communityMode
+        ? remoteRide
+          ? `floaty:${remoteRide.userId}:${remoteRide.id}`
+          : null
+        : (controller.selectedSession?.id ?? null),
+      sharedRoute: communityRoute,
+      preview: communityMode ? null : controller.historyPreview,
+      previewRoute: communityMode ? [] : controller.historyPreviewRoute,
+      gpsSamples: communityMode ? [] : controller.sessionGpsSamples,
+      telemetrySamples: communityMode ? [] : controller.sessionSamples,
+      markers: communityMode ? [] : controller.sessionMarkers,
+      mediaAssets: communityMode ? [] : controller.mediaHistory.assets,
       favoriteRanges:
         controller.historyTab === 'history'
           ? controller.favorites.map(({ startMs, endMs }) => ({ startMs, endMs }))
@@ -159,6 +176,9 @@ export function MainScreen({
       activeMapMetric: controller.activeHistoryMapMetric,
     }),
     [
+      communityMode,
+      communityRoute,
+      remoteRide,
       controller.activeHistoryMapMetric,
       controller.historyActive,
       controller.historyPreview,

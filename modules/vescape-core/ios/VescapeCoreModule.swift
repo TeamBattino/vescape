@@ -708,6 +708,19 @@ public class VescapeCoreModule: Module {
     }
 
     // @parity /modules/vescape-core/android/src/main/java/expo/modules/vescapecore/VescapeCoreModule.kt `setWatchRouteSpanM`
+    // @parity /modules/vescape-core/src/index.ts `XiaomiBandStatus`
+    // @parity /modules/vescape-core/android/src/main/java/expo/modules/vescapecore/VescapeCoreModule.kt `getXiaomiBandStatus`
+    // @platform-diff Xiaomi's Mi Fitness interconnect SDK is Android-only.
+    Function("getXiaomiBandStatus") { () -> [String: Any?] in
+      ["supported": false, "compatibility": false, "sent": false, "nodeId": nil, "phase": "unsupported", "awake": false, "received": false, "error": nil]
+    }
+    Function("configureXiaomiBand") { (_: String?) in
+      throw NSError(domain: "VescapeCore", code: 1, userInfo: [NSLocalizedDescriptionKey: "Xiaomi Band requires Android and Mi Fitness."])
+    }
+    Function("openXiaomiBand") {
+      throw NSError(domain: "VescapeCore", code: 1, userInfo: [NSLocalizedDescriptionKey: "Xiaomi Band requires Android and Mi Fitness."])
+    }
+
     Function("setWatchRouteSpanM") { (spanM: Double?) in
       WatchRouteMirror.shared.viewportSpanM = spanM
     }
@@ -2038,9 +2051,10 @@ public class VescapeCoreModule: Module {
         "enabled": coordinator.telemetryRecordingEnabled(),
         "paused": coordinator.recordingPaused(),
         "activeBoardId": coordinator.recordingActiveBoardId(),
-        // Always null, matching Android's live-state mapper — JS never consumes a real timestamp.
         // @parity /modules/vescape-core/android/src/main/java/expo/modules/vescapecore/LiveStateMapper.kt
-        "startedAt": nil,
+        // @parity /modules/vescape-core/src/index.ts `LiveStateEvent`
+        "recordingId": coordinator.recordingId(),
+        "startedAt": coordinator.recordingStartedAt(),
         "failure": coordinator.recordingFailure().map(recordingFailureState),
       ] as [String: Any?],
     ]

@@ -372,3 +372,7 @@ mid-chain range starts beyond one page, optional NULL transitions, keyframe rese
 switch decoding, rejected GPS pages, legacy precision, first/previous/final GPS matching,
 missing GPS, exact Board scope, empty telemetry, and escaping. External imports and device
 share sheets remain rider-led tests.
+
+## Active route after foreground return
+
+The main map recovers the current recording’s durable GPS track using its native recording ID, Board, and start time. The five-minute live telemetry buffer is only a fallback when no recording is active; it is not the source of the active recorded route. Foreground return and a five-second refresh reconcile the route, preserving precision/privacy filtering and splitting pause or long-GPS-gap segments. The complete live route uses an opaque rider color above its satellite contrast casing, without the recent-tail fade used by peer riders. Its map source disables geometric simplification so short loops and pause-separated stretches remain represented when zooming out. Reads from a previous recording are discarded after changing sessions. Ending a ride uses End ride → confirmation and retains any native storage error instead of reporting a successful stop.

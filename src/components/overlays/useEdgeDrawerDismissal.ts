@@ -20,6 +20,7 @@ import { scheduleOnRN } from 'react-native-worklets'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import {
+  type EdgeDrawerDismissalMode,
   DRAWER_INITIAL_OPEN_FRACTION,
   edgeDrawerContentResizeOffset,
   edgeDrawerDismissOpacity,
@@ -45,6 +46,7 @@ export interface EdgeDrawerDismissalOptions {
   edge: 'auto' | 'top' | 'bottom'
   triggerRef: React.RefObject<View | null>
   initialFocusRef?: React.RefObject<View | null>
+  dismissalMode?: EdgeDrawerDismissalMode
   autoScrollOnContentExpand: boolean
   onClose: () => void
   onReachContentEnd?: () => void
@@ -63,6 +65,7 @@ export function useEdgeDrawerDismissal({
   triggerRef,
   initialFocusRef,
   autoScrollOnContentExpand,
+  dismissalMode = 'scroll',
   onClose,
   onReachContentEnd,
 }: EdgeDrawerDismissalOptions) {
@@ -189,6 +192,7 @@ export function useEdgeDrawerDismissal({
         range: animatedDismissRange.value,
         height,
         opensFromTop,
+        dismissalMode,
       })
       if (edgeDrawerHasCommitted(fraction)) {
         dismissTriggered.value = true
@@ -207,6 +211,7 @@ export function useEdgeDrawerDismissal({
         range: animatedDismissRange.value,
         height,
         opensFromTop,
+        dismissalMode,
       }),
     )
     return { opacity: presence.value * dismissed }
@@ -221,6 +226,7 @@ export function useEdgeDrawerDismissal({
         range: animatedDismissRange.value,
         height,
         opensFromTop,
+        dismissalMode,
       }),
     )
     return {
@@ -235,6 +241,9 @@ export function useEdgeDrawerDismissal({
 
   const handleContentSizeChange = useCallback(
     (_contentWidth: number, contentHeight: number) => {
+      // Explicit long-list drawers have a fixed panel: content offsets are only
+      // scrolling, never panel position. Pagination must not reposition the list.
+      if (dismissalMode === 'explicit') return
       const previousRange = dismissRangeRef.current
       const range = Math.max(1, contentHeight - height)
       const previousContentHeight = previousContentHeightRef.current
@@ -306,6 +315,7 @@ export function useEdgeDrawerDismissal({
     [
       animatedDismissRange,
       autoScrollOnContentExpand,
+      dismissalMode,
       dismissArmed,
       height,
       initialFocusRef,
@@ -332,12 +342,14 @@ export function useEdgeDrawerDismissal({
       if (closing) return
       const fullyHidden = opensFromTop ? offset >= dismissRange - 1 : offset <= 1
       const action = edgeDrawerScrollEndAction({
+        dismissalMode,
         fullyHidden,
         visibleFraction: edgeDrawerVisibleFraction({
           offset,
           range: dismissRange,
           height,
           opensFromTop,
+          dismissalMode,
         }),
       })
       if (action === 'finish') {
@@ -355,6 +367,7 @@ export function useEdgeDrawerDismissal({
       close,
       closing,
       dismissRange,
+      dismissalMode,
       finishClose,
       height,
       onReachContentEnd,
@@ -371,12 +384,14 @@ export function useEdgeDrawerDismissal({
         targetContentOffset?.y ?? contentOffset.y - (velocity?.y ?? 0) * DRAWER_FLING_PROJECTION_MS
       const fullyHidden = opensFromTop ? contentOffset.y >= dismissRange - 1 : contentOffset.y <= 1
       const action = edgeDrawerScrollEndAction({
+        dismissalMode,
         fullyHidden,
         visibleFraction: edgeDrawerVisibleFraction({
           offset: projectedOffset,
           range: dismissRange,
           height,
           opensFromTop,
+          dismissalMode,
         }),
       })
 
@@ -388,7 +403,7 @@ export function useEdgeDrawerDismissal({
 
       handleScrollEnd(event)
     },
-    [close, dismissRange, handleScrollEnd, height, opensFromTop],
+    [close, dismissRange, dismissalMode, handleScrollEnd, height, opensFromTop],
   )
 
   return {
@@ -409,7 +424,13 @@ export function useEdgeDrawerDismissal({
     handleContentSizeChange,
     handleScrollEnd,
     handleScrollEndDrag,
-    dismissAreaHeight: height,
+    dismissAreaHeight: dismissalMode === 'explicit' ? 0 : height,
+    panelStyle:
+      dismissalMode === 'explicit'
+        ? opensFromTop
+          ? { bottom: Math.max(height * 0.12, insets.bottom) }
+          : { top: Math.max(height * 0.12, insets.top) }
+        : undefined,
   }
 }
 /* eslint-enable react-hooks/immutability */

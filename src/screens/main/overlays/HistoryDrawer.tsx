@@ -1,3 +1,6 @@
+import { useFloatyStore } from '@/modules/floaty/store/floatyStore'
+import { openCommunityRides } from '@/screens/main/history/communityEntry'
+import { useHistoryFloatyStatus } from '@/screens/main/history/useHistoryFloatyStatus'
 import { useRideFormat } from '@/modules/history/hooks/useRideFormat'
 import { useFormat } from '@/hooks/useFormat'
 import { useCallback, useEffect, useMemo, useState, type RefObject } from 'react'
@@ -45,6 +48,8 @@ export function HistoryDrawer({
   onOpenRide,
   onOpenFavorite,
 }: HistoryDrawerProps) {
+  const floatyStatus = useHistoryFloatyStatus()
+  const floatyConnected = useFloatyStore((state) => state.identity != null)
   const { formatSpeedWithUnit } = useFormat()
   const { formatRideDetails } = useRideFormat()
   const [listMode, setListMode] = useState<ListMode>(null)
@@ -122,13 +127,24 @@ export function HistoryDrawer({
       <EdgeDrawer
         visible={visible}
         triggerRef={triggerRef}
-        title="History"
+        title="Rides"
         icon={ClockCounterClockwiseIcon}
         iconColor={theme.palette.purple.color}
         onClose={onClose}
         backdropTestID="history-drawer-backdrop"
+        dismissalMode="explicit"
       >
         <View style={styles.content} testID="history-drawer">
+          {floatyConnected && (
+            <Button
+              label="Community rides"
+              variant="secondary"
+              onPress={() => {
+                onClose()
+                openCommunityRides()
+              }}
+            />
+          )}
           <ProfileStatsSummary
             active={visible}
             action={
@@ -197,6 +213,7 @@ export function HistoryDrawer({
                       isLiveRide(session, Date.now()),
                     )}
                     subtitle={details}
+                    details={floatyStatus(session)}
                     routePoints={session.routePoints}
                     onPress={() => openRide(session)}
                   />
@@ -264,6 +281,7 @@ export function HistoryDrawer({
       </EdgeDrawer>
 
       <HistorySessionSheet
+        statusForSession={floatyStatus}
         visible={listMode !== null}
         triggerRef={triggerRef}
         favoriteMode={listMode === 'favorites'}

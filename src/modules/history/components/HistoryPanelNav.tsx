@@ -16,6 +16,8 @@ import { HistoryRideLabel } from '@/modules/history/components/HistoryRideLabel'
 import { formatRideMeta, formatRideTime } from '@/modules/history/lib/rideFormat'
 
 interface HistoryPanelNavProps {
+  /** Shared route summaries have no local telemetry, media, or editing actions. */
+  readOnly?: boolean
   titleStartMs: number
   titleEndMs: number
   boardName: string
@@ -41,6 +43,7 @@ interface HistoryPanelNavProps {
 }
 
 export function HistoryPanelNav({
+  readOnly = false,
   titleStartMs,
   titleEndMs,
   boardName,
@@ -65,6 +68,25 @@ export function HistoryPanelNav({
 }: HistoryPanelNavProps) {
   const primaryLabel = title ?? formatRideTime(titleStartMs, titleEndMs)
   const secondaryLabel = subtitle ?? formatRideMeta(titleStartMs, titleEndMs, boardName)
+
+  const selectControl = (
+    <Pressable
+      ref={listButtonRef}
+      collapsable={false}
+      testID="history-ride-list-button"
+      accessibilityRole="button"
+      accessibilityLabel={`Open ride list, ${primaryLabel}`}
+      style={({ pressed }) => [styles.titleButton, pressed && styles.titleButtonPressed]}
+      android_ripple={interaction.ripple}
+      onPress={onOpenList}
+    >
+      <HistoryRideLabel title={primaryLabel} subtitle={secondaryLabel} compact tone="control" />
+      <CaretDownIcon size={12} color={theme.control.textMuted} weight="bold" />
+    </Pressable>
+  )
+  if (readOnly) {
+    return <View style={styles.readOnlySelector}>{selectControl}</View>
+  }
 
   return (
     <View style={styles.navControls}>
@@ -104,24 +126,7 @@ export function HistoryPanelNav({
         previousTestID="history-previous-ride"
         nextTestID="history-next-ride"
         style={styles.navSelector}
-        selectControl={
-          <Pressable
-            ref={listButtonRef}
-            collapsable={false}
-            testID="history-ride-list-button"
-            style={({ pressed }) => [styles.titleButton, pressed && styles.titleButtonPressed]}
-            android_ripple={interaction.ripple}
-            onPress={onOpenList}
-          >
-            <HistoryRideLabel
-              title={primaryLabel}
-              subtitle={secondaryLabel}
-              compact
-              tone="control"
-            />
-            <CaretDownIcon size={12} color={theme.control.textMuted} weight="bold" />
-          </Pressable>
-        }
+        selectControl={selectControl}
       />
       <View style={styles.navSide}>
         {favoriteMode ? (
@@ -150,6 +155,16 @@ export function HistoryPanelNav({
 }
 
 const styles = StyleSheet.create({
+  readOnlySelector: {
+    height: 54,
+    alignSelf: 'center',
+    width: '100%',
+    borderRadius: 27,
+    borderWidth: 1,
+    borderColor: theme.control.border,
+    backgroundColor: theme.control.background,
+    overflow: 'hidden',
+  },
   navControls: {
     flexDirection: 'row',
     alignItems: 'center',

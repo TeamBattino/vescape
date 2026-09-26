@@ -1,0 +1,137 @@
+<template>
+  <div class="page">
+    <image class="scale" src="{{ speedImage }}" />
+    <image class="scale" src="{{ dutyImage }}" />
+    <text class="speed-label">SPEED</text>
+    <text class="speed" style="font-size: {{ speedFont }}px;">{{ speed }}</text>
+    <text class="speed-unit">km/h</text>
+    <div class="divider"></div>
+    <text class="duty-label">DUTY</text>
+    <text class="duty" style="font-size: {{ dutyFont }}px;">{{ duty }}</text>
+    <text class="duty-unit">%</text>
+    <text class="state">{{ status }}</text>
+    <text class="battery-label">BOARD BATTERY</text>
+    <text class="battery">{{ battery }}</text>
+  </div>
+</template>
+<script>
+import interconnect from '@system.interconnect'
+import brightness from '@system.brightness'
+import { createScaleMotion } from '../../common/scaleMotion'
+import { decodeFrame, EXPIRES_MS } from '../../common/frame'
+export default {
+  private: { speedFont: 116, dutyFont: 116, speed: '--', duty: '--', battery: '--', status: 'OPEN PHONE APP', speedImage: '/common/scales/speed-0.png', dutyImage: '/common/scales/duty-0.png' },
+  onInit() {
+    this.lastFrame = 0
+    this.visible = false
+    this.scaleMotion = createScaleMotion()
+    this.conn = interconnect.instance()
+    this.conn.onmessage = (event) => this.receive(event.data)
+    this.conn.onopen = () => this.hello()
+    this.conn.onclose = () => this.unavailable('PHONE DISCONNECTED')
+    this.conn.onerror = () => this.unavailable('OPEN VESCAPE')
+    this.hello()
+  },
+  onShow() {
+    this.visible = true
+    this.clear('CONNECTING')
+    this.hello()
+    clearInterval(this.timer)
+    this.timer = setInterval(() => {
+      if (this.lastFrame && Date.now() - this.lastFrame > EXPIRES_MS) this.clear('SIGNAL LOST')
+      if (!this.lastHello || Date.now() - this.lastHello >= 2000) this.hello()
+    }, 500)
+  },
+  onHide() {
+    this.visible = false
+    clearInterval(this.timer)
+    this.conn.send({ data: { type: 'vescape.sleep', version: 1 } })
+    this.clear('OPEN VESCAPE')
+  },
+  onDestroy() {
+    this.visible = false
+    this.stopMotion()
+    this.keepAwake(false)
+    clearInterval(this.timer)
+    this.conn.onmessage = null; this.conn.onopen = null
+    this.conn.onclose = null; this.conn.onerror = null
+  },
+  hello() { this.lastHello = Date.now(); this.conn.send({ data: { type: 'vescape.hello', version: 1 }, fail: () => this.unavailable('OPEN VESCAPE') }) },
+  unavailable(status) {
+    // Global Mi Fitness drops band-to-phone replies. A failed outgoing hello must not wipe
+    // recently received live readings; the same expiry still protects a genuinely lost feed.
+    if (!this.lastFrame || Date.now() - this.lastFrame > EXPIRES_MS) this.clear(status)
+  },
+  clear(status) {
+    this.stopMotion()
+    this.scaleMotion.reset()
+    this.keepAwake(false)
+    this.status = status; this.lastFrame = 0
+    this.speed = '--'; this.duty = '--'; this.battery = '--'
+    this.speedFont = 116; this.dutyFont = 116
+    this.speedImage = '/common/scales/speed-0.png'; this.dutyImage = '/common/scales/duty-0.png'
+  },
+  stopMotion() { clearInterval(this.motionTimer); this.motionTimer = null },
+  paintScales(scales) {
+    this.speed = scales.speedText; this.duty = scales.dutyText
+    this.speedFont = this.speed.length > 2 ? 88 : 116
+    this.dutyFont = this.duty.length > 2 ? 88 : 116
+    const speedImage = '/common/scales/speed-' + scales.speed + '.png'
+    const dutyImage = '/common/scales/duty-' + scales.duty + '.png'
+    if (this.speedImage !== speedImage) this.speedImage = speedImage
+    if (this.dutyImage !== dutyImage) this.dutyImage = dutyImage
+  },
+  animateScales(frame) {
+    this.stopMotion()
+    this.scaleMotion.target(frame, Date.now())
+    const paint = () => {
+      if (!this.visible) { this.stopMotion(); return }
+      const scales = this.scaleMotion.sample(Date.now())
+      this.paintScales(scales)
+      if (scales.done) this.stopMotion()
+    }
+    paint()
+    if (!this.scaleMotion.sample(Date.now()).done) this.motionTimer = setInterval(paint, 40)
+  },
+  keepAwake(value) {
+    if (this.keptAwake === value) return
+    // Retry failures at most every two seconds; hidden pages always release immediately.
+    if (value && this.lastWakeAttempt && Date.now() - this.lastWakeAttempt < 2000) return
+    this.lastWakeAttempt = value ? Date.now() : 0
+    this.keptAwake = value
+    try {
+      brightness.setKeepScreenOn({ keepScreenOn: value, fail: () => {
+        this.keptAwake = undefined
+        console.warn('Vescape screen-on request failed')
+      } })
+    } catch (_) { this.keptAwake = undefined }
+  },
+  receive(raw) {
+    const frame = decodeFrame(raw)
+    if (!frame || !this.visible) return
+    if (this.lastFrame && Date.now() - this.lastFrame > EXPIRES_MS) this.scaleMotion.reset()
+    this.keepAwake(frame.state === 'LIVE')
+    this.lastFrame = Date.now()
+    this.battery = frame.battery; this.status = frame.state === 'LIVE' ? '' : frame.state
+    this.animateScales(frame)
+    if (!this.lastAck || Date.now() - this.lastAck > 2000) {
+      this.lastAck = Date.now()
+      this.conn.send({data: {type: 'vescape.ack', version: 1}})
+    }
+  }
+}
+</script>
+<style>
+.page { width: 212px; height: 520px; background-color: #000000; }
+.scale { position: absolute; left: 0px; top: 0px; width: 212px; height: 520px; }
+.speed-label { position: absolute; left: 26px; top: 68px; width: 160px; height: 22px; text-align: center; font-size: 16px; color: #36aaff; }
+.speed { position: absolute; left: 16px; top: 90px; width: 180px; height: 130px; text-align: center; font-weight: bold; color: #ffffff; lines: 1; }
+.speed-unit { position: absolute; left: 36px; top: 219px; width: 140px; height: 24px; text-align: center; font-size: 17px; color: #36aaff; }
+.divider { position: absolute; left: 77px; top: 264px; width: 58px; height: 2px; background-color: #26303c; }
+.duty-label { position: absolute; left: 26px; top: 284px; width: 160px; height: 22px; text-align: center; font-size: 16px; color: #ffd23f; }
+.duty { position: absolute; left: 16px; top: 303px; width: 180px; height: 130px; text-align: center; font-weight: bold; color: #ffffff; lines: 1; }
+.duty-unit { position: absolute; left: 36px; top: 424px; width: 140px; height: 22px; text-align: center; font-size: 16px; color: #ffd23f; }
+.state { position: absolute; left: 30px; top: 39px; width: 152px; height: 20px; text-align: center; font-size: 10px; color: #c0cad7; }
+.battery-label { position: absolute; left: 36px; top: 454px; width: 140px; height: 16px; text-align: center; font-size: 10px; color: #9eafc1; }
+.battery { position: absolute; left: 41px; top: 471px; width: 130px; height: 36px; text-align: center; font-size: 30px; font-weight: bold; color: #ffffff; }
+</style>

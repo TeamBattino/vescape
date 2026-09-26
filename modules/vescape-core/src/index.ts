@@ -1007,6 +1007,10 @@ export interface LiveStateEvent {
     enabled: boolean
     paused: boolean
     activeBoardId: string | null
+    /** Durable identity, retained across reconnect and foreground transitions. */
+    // @parity /modules/vescape-core/android/src/main/java/expo/modules/vescapecore/LiveStateMapper.kt
+    // @parity /modules/vescape-core/ios/VescapeCoreModule.swift
+    recordingId?: string | null
     startedAt: number | null
     /**
      * Native-owned persistence failure. Cleared only by a successful startup storage check.
@@ -2697,6 +2701,9 @@ type VescapeCoreNativeModule = NativeEventEmitter<VescapeCoreEvents> & {
   exportDebugRecording(name: string): Promise<DatabaseBackupResult>
   deleteDebugRecording(name: string): Promise<void>
   startDebugReplay(name: string, options: DebugReplayOptions | null): Promise<void>
+  getXiaomiBandStatus(): XiaomiBandStatus
+  configureXiaomiBand(id: string | null): void
+  openXiaomiBand(): void
   setWatchRouteSpanM(spanM: number | null): void
   stopDebugReplay(): Promise<void>
   reportUiError(message: string, source?: string | null, stack?: string | null): void
@@ -4468,4 +4475,28 @@ export function setBrakeLightPreview(
   mode: BrakeLightMode | null,
 ): Promise<boolean> {
   return native.setBrakeLightPreview(accessoryId, capabilityId, mode)
+}
+
+/**
+ * @parity /modules/vescape-core/android/src/main/java/expo/modules/vescapecore/VescapeCoreModule.kt `getXiaomiBandStatus`
+ * @parity /modules/vescape-core/ios/VescapeCoreModule.swift `getXiaomiBandStatus`
+ */
+export interface XiaomiBandStatus {
+  compatibility: boolean
+  sent: boolean
+  supported: boolean
+  nodeId: string | null
+  phase: string
+  awake: boolean
+  received: boolean
+  error: string | null
+}
+export function getXiaomiBandStatus(): XiaomiBandStatus {
+  return native.getXiaomiBandStatus()
+}
+export function configureXiaomiBand(id: string | null): void {
+  native.configureXiaomiBand(id)
+}
+export function openXiaomiBand(): void {
+  native.openXiaomiBand()
 }

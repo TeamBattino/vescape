@@ -86,6 +86,8 @@ internal final class TelemetryRepository {
 
   /// Identity #449 groups history on and #450 carries across a Board Session teardown.
   var activeRideRecordingId: String? { queue.sync { currentRecording?.id } }
+  // @parity /modules/vescape-core/android/src/main/java/expo/modules/vescapecore/telemetry/TelemetryRepository.kt `activeRideRecordingStartedAt`
+  var activeRideRecordingStartedAt: Int64? { queue.sync { currentRecording?.startedAtMs } }
 
 
   /// Rejoin the Ride Recording named by `recordingId`, or nil when it can no longer be rejoined.
