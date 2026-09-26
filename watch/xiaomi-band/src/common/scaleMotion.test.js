@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
 import { createScaleMotion } from './scaleMotion'
+import { capsuleSegments } from './capsuleSegments'
 import { decodeFrame, EXPIRES_MS } from './frame'
 const frame = (speed, duty = speed) => ({
   state: 'LIVE',
@@ -44,6 +45,7 @@ test('hidden page cancels animation, clears readings and ignores incoming teleme
     'interconnect',
     'brightness',
     'createScaleMotion',
+    'capsuleSegments',
     'decodeFrame',
     'EXPIRES_MS',
     'setInterval',
@@ -53,6 +55,7 @@ test('hidden page cancels animation, clears readings and ignores incoming teleme
     { instance: () => ({ send() {} }) },
     { setKeepScreenOn: ({ keepScreenOn }) => wake.push(keepScreenOn) },
     createScaleMotion,
+    capsuleSegments,
     decodeFrame,
     EXPIRES_MS,
     (callback) => {

@@ -4,7 +4,7 @@ A read-only Vela companion for the 212 × 520 screen. Android Vescape owns the b
 
 ## Build
 
-Use `bun install` then `bun run build` in this directory. `aiot-toolkit` is pinned to 2.0.5. Tests: `bun run test`. Scale assets are checked in; regenerate with Python + Pillow using `python tools/generate-scales.py`.
+Use `bun install` then `bun run build` in this directory. `aiot-toolkit` is pinned to 2.0.5. Tests: `bun run test`. The capsule scales use four native arc progress components and two solid vertical fills; no animation bitmap assets are loaded. The launcher icon is 96 × 96 pixels.
 
 Mi Fitness requires the RPK package and signing certificate to match the phone app. The development manifest uses `app.vescape.dev`. Place matching PEM files in `sign/debug/private.pem` and `sign/debug/certificate.pem` before building. Do not commit signing keys. Production uses a different identity and needs its matching manifest/signature; the development RPK cannot talk to the store APK.
 
@@ -41,3 +41,5 @@ background execution. For fewer band interruptions, use the band's Control cente
 says DND suppresses vibration and screen wake for calls/messages/app notifications;
 alarms and health/system alerts can still interrupt. This app does not change band
 or phone DND settings automatically.
+
+Native border rendering keeps the same 12 px blue/yellow capsule shape while avoiding a changing set of full-screen RGBA textures. The previous 102 scale images represented 42.9 MiB if all were decoded; this was a potential cache footprint, not measured resident memory. No scale PNGs remain. The launcher icon uses at most 36 KiB of RGBA pixel storage (previously 4 MiB at 1024 × 1024). Native renderer buffers are firmware-owned and are not included in those image estimates. This reduces a concrete resource risk; it does not prove or fix every cause of a full firmware reboot.

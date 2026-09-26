@@ -1,16 +1,22 @@
 <template>
   <div class="page">
-    <image class="scale" src="{{ speedImage }}" />
-    <image class="scale" src="{{ dutyImage }}" />
-    <text class="speed-label">SPEED</text>
+    <progress class="arc speed-bottom" type="arc" percent="{{ speedBottom }}" />
+    <progress class="arc speed-top" type="arc" percent="{{ speedTop }}" />
+    <progress class="arc duty-bottom" type="arc" percent="{{ dutyBottom }}" />
+    <progress class="arc duty-top" type="arc" percent="{{ dutyTop }}" />
+    <div class="straight speed-track" static></div>
+    <div class="straight duty-track" static></div>
+    <div class="straight speed-fill" style="top: {{ speedFillTop }}px; height: {{ speedFillHeight }}px;"></div>
+    <div class="straight duty-fill" style="top: {{ dutyFillTop }}px; height: {{ dutyFillHeight }}px;"></div>
+    <text class="speed-label" static>SPEED</text>
     <text class="speed" style="font-size: {{ speedFont }}px;">{{ speed }}</text>
-    <text class="speed-unit">km/h</text>
-    <div class="divider"></div>
-    <text class="duty-label">DUTY</text>
+    <text class="speed-unit" static>km/h</text>
+    <div class="divider" static></div>
+    <text class="duty-label" static>DUTY</text>
     <text class="duty" style="font-size: {{ dutyFont }}px;">{{ duty }}</text>
-    <text class="duty-unit">%</text>
+    <text class="duty-unit" static>%</text>
     <text class="state">{{ status }}</text>
-    <text class="battery-label">BOARD BATTERY</text>
+    <text class="battery-label" static>BOARD BATTERY</text>
     <text class="battery">{{ battery }}</text>
   </div>
 </template>
@@ -18,9 +24,10 @@
 import interconnect from '@system.interconnect'
 import brightness from '@system.brightness'
 import { createScaleMotion } from '../../common/scaleMotion'
+import { capsuleSegments } from '../../common/capsuleSegments'
 import { decodeFrame, EXPIRES_MS } from '../../common/frame'
 export default {
-  private: { speedFont: 116, dutyFont: 116, speed: '--', duty: '--', battery: '--', status: 'OPEN PHONE APP', speedImage: '/common/scales/speed-0.png', dutyImage: '/common/scales/duty-0.png' },
+  private: { speedFont: 116, dutyFont: 116, speed: '--', duty: '--', battery: '--', status: 'OPEN PHONE APP', speedBottom: 0, speedTop: 0, dutyBottom: 0, dutyTop: 0, speedFillTop: 414, dutyFillTop: 414, speedFillHeight: 0, dutyFillHeight: 0 },
   onInit() {
     this.lastFrame = 0
     this.visible = false
@@ -69,17 +76,22 @@ export default {
     this.status = status; this.lastFrame = 0
     this.speed = '--'; this.duty = '--'; this.battery = '--'
     this.speedFont = 116; this.dutyFont = 116
-    this.speedImage = '/common/scales/speed-0.png'; this.dutyImage = '/common/scales/duty-0.png'
+    this.paintBorder('speed', 0); this.paintBorder('duty', 0)
   },
   stopMotion() { clearInterval(this.motionTimer); this.motionTimer = null },
   paintScales(scales) {
     this.speed = scales.speedText; this.duty = scales.dutyText
     this.speedFont = this.speed.length > 2 ? 88 : 116
     this.dutyFont = this.duty.length > 2 ? 88 : 116
-    const speedImage = '/common/scales/speed-' + scales.speed + '.png'
-    const dutyImage = '/common/scales/duty-' + scales.duty + '.png'
-    if (this.speedImage !== speedImage) this.speedImage = speedImage
-    if (this.dutyImage !== dutyImage) this.dutyImage = dutyImage
+    this.paintBorder('speed', scales.speed)
+    this.paintBorder('duty', scales.duty)
+  },
+  paintBorder(side, value) {
+    const segments = capsuleSegments(value)
+    for (const part of ['Bottom', 'Top', 'FillTop', 'FillHeight']) {
+      const key = side + part
+      if (this[key] !== segments[part]) this[key] = segments[part]
+    }
   },
   animateScales(frame) {
     this.stopMotion()
@@ -123,7 +135,16 @@ export default {
 </script>
 <style>
 .page { width: 212px; height: 520px; background-color: #000000; }
-.scale { position: absolute; left: 0px; top: 0px; width: 212px; height: 520px; }
+.arc { position: absolute; left: 0px; width: 212px; height: 212px; center-x: 106px; center-y: 106px; radius: 98px; stroke-width: 12px; }
+.speed-bottom { top: 308px; start-angle: 180deg; total-angle: 90deg; color: #36aaff; layer-color: #102738; }
+.speed-top { top: 0px; start-angle: 270deg; total-angle: 90deg; color: #36aaff; layer-color: #102738; }
+.duty-bottom { top: 308px; start-angle: 180deg; total-angle: -90deg; color: #ffd23f; layer-color: #352d10; }
+.duty-top { top: 0px; start-angle: 90deg; total-angle: -90deg; color: #ffd23f; layer-color: #352d10; }
+.straight { position: absolute; width: 12px; }
+.speed-track { left: 2px; top: 106px; height: 308px; background-color: #102738; }
+.duty-track { left: 198px; top: 106px; height: 308px; background-color: #352d10; }
+.speed-fill { left: 2px; background-color: #36aaff; }
+.duty-fill { left: 198px; background-color: #ffd23f; }
 .speed-label { position: absolute; left: 26px; top: 68px; width: 160px; height: 22px; text-align: center; font-size: 16px; color: #36aaff; }
 .speed { position: absolute; left: 16px; top: 90px; width: 180px; height: 130px; text-align: center; font-weight: bold; color: #ffffff; lines: 1; }
 .speed-unit { position: absolute; left: 36px; top: 219px; width: 140px; height: 24px; text-align: center; font-size: 17px; color: #36aaff; }
