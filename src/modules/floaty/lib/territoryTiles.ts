@@ -204,84 +204,240 @@ export function mergeTerritoryTiles(
   return { type: 'FeatureCollection', features }
 }
 
-/** Memory-only public map cache. Recording, account data and uploads never pass here. */
+export interface TerritoryLoadProgress {
+  loaded: number
+  total: number
+}
+interface CacheTiming {
+  requestTimeoutMs: number
+  loadTimeoutMs: number
+  retryDelayMs: number
+  progressIntervalMs: number
+}
+const CACHE_TIMING: CacheTiming = {
+  requestTimeoutMs: 8000,
+  loadTimeoutMs: 12000,
+  retryDelayMs: 15000,
+  progressIntervalMs: 350,
+}
+const REQUEST_CONCURRENCY = 8
+interface PendingTile {
+  controller: AbortController
+  promise: Promise<void>
+}
+
+/** Stop waiting without depending on a transport honouring AbortSignal. */
+function untilAborted<T>(promise: Promise<T>, signal: AbortSignal): Promise<T | undefined> {
+  if (signal.aborted) return Promise.resolve(undefined)
+  return new Promise((resolve, reject) => {
+    const abort = () => {
+      signal.removeEventListener('abort', abort)
+      resolve(undefined)
+    }
+    signal.addEventListener('abort', abort, { once: true })
+    promise.then(
+      (value) => {
+        signal.removeEventListener('abort', abort)
+        resolve(value)
+      },
+      (error: unknown) => {
+        signal.removeEventListener('abort', abort)
+        reject(error)
+      },
+    )
+  })
+}
+
+/** Memory-only public map cache. Recording, account data and uploads never pass here.
+ * A viewport owns its wait, not the request: brief pans can reuse an in-flight tile. */
 export class TerritoryTileCache {
   private entries = new Map<string, TileData>()
+  private pending = new Map<string, PendingTile>()
+  private failures = new Map<string, number>()
+  private waiters = new Set<() => void>()
   private revision: number | null = null
   private bytes = 0
-  constructor(private request: (url: string, options?: RequestInit) => Promise<Response> = fetch) {}
+  private active = 0
+  private timing: CacheTiming
+  constructor(
+    private request: (url: string, options?: RequestInit) => Promise<Response> = fetch,
+    timing: Partial<CacheTiming> = {},
+  ) {
+    this.timing = { ...CACHE_TIMING, ...timing }
+  }
+
+  private setRevision(revision: number) {
+    if (revision === this.revision) return
+    this.revision = revision
+    for (const pending of this.pending.values()) pending.controller.abort()
+    this.pending.clear()
+    this.entries.clear()
+    this.failures.clear()
+    this.bytes = 0
+  }
+
+  private store(key: string, entry: TileData) {
+    const previous = this.entries.get(key)
+    if (previous) this.bytes -= previous.bytes
+    this.entries.delete(key)
+    this.entries.set(key, entry)
+    this.bytes += entry.bytes
+    while (this.entries.size > CACHE_LIMIT || this.bytes > MAX_CACHE_BYTES) {
+      const oldest = this.entries.keys().next().value
+      if (oldest == null) break
+      this.bytes -= this.entries.get(oldest)!.bytes
+      this.entries.delete(oldest)
+    }
+  }
+
+  private async fetchTile(tile: TerritoryTile, revision: number, signal: AbortSignal) {
+    const url = TERRITORY_TILES.replace('{z}', String(TERRITORY_DETAIL_ZOOM))
+      .replace('{x}', String(tile.x))
+      .replace('{y}', String(tile.y))
+    const response = await this.request(`${url}?v=${revision}`, { signal })
+    if (!response.ok && response.status !== 404)
+      throw new Error(`Territory HTTP ${response.status}`)
+    if (Number(response.headers.get('content-length')) > MAX_TILE_BYTES)
+      throw new Error('Territory tile exceeds size limit')
+    const buffer = response.status === 404 ? new ArrayBuffer(0) : await response.arrayBuffer()
+    if (signal.aborted || this.revision !== revision) return
+    const features = buffer.byteLength ? decodeTerritoryTile(buffer, tile) : []
+    this.store(tile.key, {
+      features,
+      // Account for decoded JS objects as well as compressed wire bytes.
+      bytes: Math.max(buffer.byteLength, JSON.stringify(features).length * 4),
+      modified: Date.parse(response.headers.get('last-modified') ?? '') || 0,
+    })
+    this.failures.delete(tile.key)
+  }
+
+  private startTile(tile: TerritoryTile, revision: number): PendingTile {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), this.timing.requestTimeoutMs)
+    const pending = { controller, promise: Promise.resolve() }
+    // intentional-suppression: completion records failed coverage and cooldown; the UI offers retry.
+    pending.promise = untilAborted(
+      this.fetchTile(tile, revision, controller.signal),
+      controller.signal,
+    )
+      .catch(() => {})
+      .finally(() => {
+        clearTimeout(timeout)
+        if (this.pending.get(tile.key) === pending) {
+          this.pending.delete(tile.key)
+          if (!this.entries.has(tile.key)) {
+            this.failures.set(tile.key, Date.now() + this.timing.retryDelayMs)
+            // Failed sparse/world pans must not grow memory without bound either.
+            while (this.failures.size > CACHE_LIMIT)
+              this.failures.delete(this.failures.keys().next().value!)
+          }
+        }
+        this.releaseSlot()
+      })
+    this.pending.set(tile.key, pending)
+    return pending
+  }
+
+  private releaseSlot() {
+    this.active--
+    for (const wake of [...this.waiters]) wake()
+  }
+
+  private async waitForSlot(signal: AbortSignal) {
+    while (this.active >= REQUEST_CONCURRENCY && !signal.aborted) {
+      let wake!: () => void
+      const ready = new Promise<void>((resolve) => {
+        wake = resolve
+        this.waiters.add(wake)
+      })
+      await untilAborted(ready, signal)
+      this.waiters.delete(wake)
+    }
+    if (signal.aborted) return false
+    this.active++
+    return true
+  }
+
+  private async ensureTile(tile: TerritoryTile, revision: number, signal: AbortSignal) {
+    const cached = this.entries.get(tile.key)
+    if (cached) {
+      this.entries.delete(tile.key)
+      this.entries.set(tile.key, cached)
+      return
+    }
+    if ((this.failures.get(tile.key) ?? 0) > Date.now()) return
+    let pending = this.pending.get(tile.key)
+    if (!pending) {
+      if (!(await this.waitForSlot(signal))) return
+      if (
+        signal.aborted ||
+        revision !== this.revision ||
+        this.entries.has(tile.key) ||
+        (this.failures.get(tile.key) ?? 0) > Date.now()
+      ) {
+        this.releaseSlot()
+        return
+      }
+      // Another viewport may have obtained the same tile while we were waiting.
+      pending = this.pending.get(tile.key)
+      if (pending) this.releaseSlot()
+      else pending = this.startTile(tile, revision)
+    }
+    await untilAborted(pending.promise, signal)
+  }
 
   async load(
     plan: TerritoryPlan,
     revision: number,
     signal: AbortSignal,
-    onProgress?: () => void,
+    onProgress?: (progress: TerritoryLoadProgress) => void,
   ): Promise<number> {
-    if (revision !== this.revision) {
-      this.entries.clear()
-      this.bytes = 0
-      this.revision = revision
-    }
+    if (signal.aborted) return plan.tiles.length
+    this.setRevision(revision)
+    const controller = new AbortController()
+    const abort = () => controller.abort()
+    signal.addEventListener('abort', abort, { once: true })
+    const deadline = setTimeout(abort, this.timing.loadTimeoutMs)
     let cursor = 0
-    let failures = 0
-    let completed = 0
-    let showedFirstCells = false
-    const worker = async () => {
-      while (!signal.aborted && cursor < plan.tiles.length) {
-        const tile = plan.tiles[cursor++]
-        const cached = this.entries.get(tile.key)
-        if (cached) {
-          this.entries.delete(tile.key)
-          this.entries.set(tile.key, cached)
-          continue
-        }
-        const controller = new AbortController()
-        const timeout = setTimeout(() => controller.abort(), 12000)
-        const abort = () => controller.abort()
-        signal.addEventListener('abort', abort)
-        try {
-          const url = TERRITORY_TILES.replace('{z}', String(TERRITORY_DETAIL_ZOOM))
-            .replace('{x}', String(tile.x))
-            .replace('{y}', String(tile.y))
-          const response = await this.request(`${url}?v=${revision}`, { signal: controller.signal })
-          if (!response.ok && response.status !== 404)
-            throw new Error(`Territory HTTP ${response.status}`)
-          if (Number(response.headers.get('content-length')) > MAX_TILE_BYTES)
-            throw new Error('Territory tile exceeds size limit')
-          const buffer = response.status === 404 ? new ArrayBuffer(0) : await response.arrayBuffer()
-          const features = buffer.byteLength ? decodeTerritoryTile(buffer, tile) : []
-          if (signal.aborted || this.revision !== revision) return
-          const entry = {
-            features,
-            // Account for decoded JS objects as well as compressed wire bytes.
-            bytes: Math.max(buffer.byteLength, JSON.stringify(features).length * 4),
-            modified: Date.parse(response.headers.get('last-modified') ?? '') || 0,
-          }
-          this.entries.set(tile.key, entry)
-          this.bytes += entry.bytes
-          while (this.entries.size > CACHE_LIMIT || this.bytes > MAX_CACHE_BYTES) {
-            const oldest = this.entries.keys().next().value
-            if (oldest == null) break
-            this.bytes -= this.entries.get(oldest)!.bytes
-            this.entries.delete(oldest)
-          }
-          completed++
-          if (completed % 16 === 0 || (!showedFirstCells && features.length > 0)) {
-            showedFirstCells ||= features.length > 0
-            onProgress?.()
-          }
-        } catch {
-          if (!signal.aborted) failures++
-        } finally {
-          clearTimeout(timeout)
-          signal.removeEventListener('abort', abort)
-        }
+    let lastProgress = 0
+    const publish = (force = false) => {
+      if (signal.aborted || this.revision !== revision) return
+      if (force || Date.now() - lastProgress >= this.timing.progressIntervalMs) {
+        lastProgress = Date.now()
+        onProgress?.(this.coverage(plan, revision))
       }
     }
-    await Promise.all(Array.from({ length: 4 }, worker))
-    return failures
+    const worker = async () => {
+      while (
+        !controller.signal.aborted &&
+        this.revision === revision &&
+        cursor < plan.tiles.length
+      ) {
+        await this.ensureTile(plan.tiles[cursor++], revision, controller.signal)
+        publish()
+      }
+    }
+    try {
+      await Promise.all(Array.from({ length: REQUEST_CONCURRENCY }, worker))
+      publish(true)
+      return plan.tiles.length - this.coverage(plan, revision).loaded
+    } finally {
+      clearTimeout(deadline)
+      signal.removeEventListener('abort', abort)
+    }
   }
-  shape(viewport: TerritoryViewport) {
-    return mergeTerritoryTiles([...this.entries.values()], viewport)
+
+  coverage(plan: TerritoryPlan, expectedRevision = this.revision): TerritoryLoadProgress {
+    const loaded =
+      expectedRevision === this.revision
+        ? plan.tiles.filter((tile) => this.entries.has(tile.key)).length
+        : 0
+    return { loaded, total: plan.tiles.length }
+  }
+
+  shape(viewport: TerritoryViewport, expectedRevision = this.revision) {
+    return expectedRevision === this.revision
+      ? mergeTerritoryTiles([...this.entries.values()], viewport)
+      : EMPTY_TERRITORY
   }
 }

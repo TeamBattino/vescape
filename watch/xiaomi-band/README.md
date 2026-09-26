@@ -43,3 +43,5 @@ alarms and health/system alerts can still interrupt. This app does not change ba
 or phone DND settings automatically.
 
 Native border rendering keeps the same 12 px blue/yellow capsule shape while avoiding a changing set of full-screen RGBA textures. The previous 102 scale images represented 42.9 MiB if all were decoded; this was a potential cache footprint, not measured resident memory. No scale PNGs remain. The launcher icon uses at most 36 KiB of RGBA pixel storage (previously 4 MiB at 1024 × 1024). Native renderer buffers are firmware-owned and are not included in those image estimates. This reduces a concrete resource risk; it does not prove or fix every cause of a full firmware reboot.
+
+The reading groups sit 20 px higher and the battery 25 px higher to keep the battery clear of the curved bottom edge. Zero arc segments explicitly use their dark track color, and zero-height straight fills are hidden, avoiding firmware-specific zero-progress drawing. Arc radius includes the native stroke inset so the curved and straight edges align.

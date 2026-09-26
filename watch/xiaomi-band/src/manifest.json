@@ -1,8 +1,8 @@
 {
   "package": "app.vescape.dev",
   "name": "Vescape",
-  "versionName": "0.3.2",
-  "versionCode": 7,
+  "versionName": "0.3.3",
+  "versionCode": 8,
   "minPlatformVersion": 1200,
   "minAPILevel": 1,
   "icon": "/common/icon.png",

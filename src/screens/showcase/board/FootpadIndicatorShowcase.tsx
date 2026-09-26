@@ -24,38 +24,34 @@ const THRESHOLDS: Record<string, number | null> = {
 export function FootpadIndicatorShowcase() {
   const [size, setSize] = useState('detail')
   const [threshold2, setThreshold2] = useState('0.8')
-  const [live, setLive] = useState(true)
+  const [signal, setSignal] = useState('sweep')
   const [posi, setPosi] = useState(false)
   const adc1 = useSharedValue<number | null>(null)
   const adc2 = useSharedValue<number | null>(null)
 
   useEffect(() => {
-    if (!live) {
-      cancelAnimation(adc1)
-      cancelAnimation(adc2)
-      adc1.value = null
-      adc2.value = null
+    cancelAnimation(adc1)
+    cancelAnimation(adc2)
+    if (signal !== 'sweep') {
+      adc1.set(signal === 'no data' ? null : signal === 'left only' || signal === 'both' ? 3.3 : 0)
+      adc2.set(signal === 'no data' ? null : signal === 'right only' || signal === 'both' ? 3.3 : 0)
       return
     }
     // Two sweeps of different length, so the zones are usually out of step — that difference is the
     // thing the two rails exist to show.
-    adc1.value = 0
-    adc2.value = 0
-    adc1.value = withRepeat(
-      withTiming(3.3, { duration: 2600, easing: Easing.inOut(Easing.quad) }),
-      -1,
-      true,
+    adc1.set(0)
+    adc2.set(0)
+    adc1.set(
+      withRepeat(withTiming(3.3, { duration: 2600, easing: Easing.inOut(Easing.quad) }), -1, true),
     )
-    adc2.value = withRepeat(
-      withTiming(3.3, { duration: 4100, easing: Easing.inOut(Easing.quad) }),
-      -1,
-      true,
+    adc2.set(
+      withRepeat(withTiming(3.3, { duration: 4100, easing: Easing.inOut(Easing.quad) }), -1, true),
     )
     return () => {
       cancelAnimation(adc1)
       cancelAnimation(adc2)
     }
-  }, [live, adc1, adc2])
+  }, [signal, adc1, adc2])
 
   return (
     <ShowcaseCard
@@ -64,12 +60,17 @@ export function FootpadIndicatorShowcase() {
         <>
           <ChipRow label="width" options={Object.keys(WIDTHS)} selected={size} onSelect={setSize} />
           <ChipRow
-            label="zone 2 fault_adc"
+            label="right zone (ADC2) fault_adc"
             options={Object.keys(THRESHOLDS)}
             selected={threshold2}
             onSelect={setThreshold2}
           />
-          <ToggleRow label="live sweep" value={live} onToggle={setLive} />
+          <ChipRow
+            label="sensor signal"
+            options={['sweep', 'left only', 'right only', 'both', 'off', 'no data']}
+            selected={signal}
+            onSelect={setSignal}
+          />
           <ToggleRow label="posi (both sensors as one)" value={posi} onToggle={setPosi} />
         </>
       }
@@ -79,6 +80,7 @@ export function FootpadIndicatorShowcase() {
           adc1={adc1}
           adc2={adc2}
           posi={posi}
+          showValues={size === 'detail'}
           threshold1={0.8}
           threshold2={THRESHOLDS[threshold2] ?? null}
           width={WIDTHS[size] ?? 132}

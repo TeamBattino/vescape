@@ -263,16 +263,16 @@ export function FootpadIndicator({
   'use no memo'
   const fillColor = useResolvedColor(theme.palette.green.text)
   const geometry = useMemo(() => buildGeometry(width), [width])
-  // Zone 2 sits under the left edge of the pad and zone 1 under the right, the opposite of reading
-  // order. The pad is drawn the way the rider looks down at it, so the rails follow the hardware.
-  const left = useZoneDrive(adc2, threshold2)
-  const right = useZoneDrive(adc1, threshold1)
+  // Display ADC1 on the left and ADC2 on the right. This is presentation only: each voltage
+  // keeps its own firmware threshold; protocol channel identities and engagement stay intact.
+  const left = useZoneDrive(adc1, threshold1)
+  const right = useZoneDrive(adc2, threshold2)
   const sharedGlow = useDerivedValue<number>(() => Math.max(left.glow.value, right.glow.value))
   const leftGlow = posi ? sharedGlow : left.glow
   const rightGlow = posi ? sharedGlow : right.glow
   const gutter = showValues ? VALUE_SIZE * VALUE_GUTTER_CHARS : 0
-  const leftText = useVoltsText(adc2)
-  const rightText = useVoltsText(adc1)
+  const leftText = useVoltsText(adc1)
+  const rightText = useVoltsText(adc2)
 
   return (
     <View style={style} testID={testID}>

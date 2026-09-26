@@ -289,3 +289,17 @@ describe('live telemetry runtime', () => {
     expect(snapshot.liveStatus.gpsSampleCount).toBe(1)
   })
 })
+
+test('footpad display consumes unchanged ADC channel identities across snapshot and live ticks', () => {
+  const runtime = createLiveTelemetryRuntime({ windowMs: () => 60_000 })
+  runtime.seedFromLiveState(liveState([telemetry({ adc1: 3.1, adc2: 0.2 })]))
+  expect(runtime.values.adc1.value).toBe(3.1)
+  expect(runtime.values.adc2.value).toBe(0.2)
+  runtime.ingestTick(telemetry({ adc1: 0.1, adc2: 2.8, lastPacketAt: 11_000 }))
+  expect(runtime.values.adc1.value).toBe(0.1)
+  expect(runtime.values.adc2.value).toBe(2.8)
+  // An unavailable channel must not borrow the other sensor's voltage or become an engaged zero.
+  runtime.ingestTick(telemetry({ adc1: Number.NaN, adc2: 3.2, lastPacketAt: 12_000 }))
+  expect(runtime.values.adc1.value).toBeNull()
+  expect(runtime.values.adc2.value).toBe(3.2)
+})

@@ -3,7 +3,7 @@ import { useFloatyStore } from '@/modules/floaty/store/floatyStore'
 import { useMainScreenStore } from '@/screens/main/mainScreenStore'
 import { useAboveStripBottom } from '@/screens/main/overlays/BottomTelemetryStrip'
 import { FloatyTerritoryDetails } from '@/modules/floaty/components/FloatyTerritoryDetails'
-import { useTerritoryMapStore } from '@/modules/floaty/store/territoryMapStore'
+import { retryTerritoryTiles, useTerritoryMapStore } from '@/modules/floaty/store/territoryMapStore'
 import { StyleSheet, View } from 'react-native'
 
 import { Text } from '@/components/base/Text'
@@ -56,9 +56,10 @@ export function MainMapOverlays({
       ? aboveTelemetryStrip + 110
       : mode === 'history'
         ? Math.max(28, historyPanelHeight + 12)
-        : 28
+        : Math.max(28, insets.bottom + 12)
   const territoryEnabled = useFloatyStore((state) => state.preferences.territory)
   const territoryLoadStatus = useTerritoryMapStore((state) => state.loadStatus)
+  const canRetryTerritory = useTerritoryMapStore((state) => state.canRetry)
   const territorySelection = useTerritoryMapStore((state) => state.selected)
   const { formatHistoryMarker } = useRideFormat()
   return (
@@ -85,7 +86,10 @@ export function MainMapOverlays({
       {identity && territoryEnabled && !weatherActive && !legalLimitsActive && (
         <Text
           style={[styles.territoryAttribution, { bottom: territoryStatusBottom }]}
-          pointerEvents="none"
+          pointerEvents={canRetryTerritory ? 'auto' : 'none'}
+          onPress={canRetryTerritory ? retryTerritoryTiles : undefined}
+          accessibilityRole={canRetryTerritory ? 'button' : 'text'}
+          accessibilityLabel={canRetryTerritory ? 'Retry loading club territory' : undefined}
         >
           {territoryLoadStatus ?? 'Territory © Floaty'}
         </Text>

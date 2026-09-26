@@ -1,13 +1,13 @@
 <template>
   <div class="page">
-    <progress class="arc speed-bottom" type="arc" percent="{{ speedBottom }}" />
-    <progress class="arc speed-top" type="arc" percent="{{ speedTop }}" />
-    <progress class="arc duty-bottom" type="arc" percent="{{ dutyBottom }}" />
-    <progress class="arc duty-top" type="arc" percent="{{ dutyTop }}" />
+    <progress class="arc speed-bottom" type="arc" percent="{{ speedBottom }}" style="color: {{ speedBottom > 0 ? '#36aaff' : '#102738' }};" />
+    <progress class="arc speed-top" type="arc" percent="{{ speedTop }}" style="color: {{ speedTop > 0 ? '#36aaff' : '#102738' }};" />
+    <progress class="arc duty-bottom" type="arc" percent="{{ dutyBottom }}" style="color: {{ dutyBottom > 0 ? '#ffd23f' : '#352d10' }};" />
+    <progress class="arc duty-top" type="arc" percent="{{ dutyTop }}" style="color: {{ dutyTop > 0 ? '#ffd23f' : '#352d10' }};" />
     <div class="straight speed-track" static></div>
     <div class="straight duty-track" static></div>
-    <div class="straight speed-fill" style="top: {{ speedFillTop }}px; height: {{ speedFillHeight }}px;"></div>
-    <div class="straight duty-fill" style="top: {{ dutyFillTop }}px; height: {{ dutyFillHeight }}px;"></div>
+    <div class="straight speed-fill" show="{{ speedFillHeight > 0 }}" style="top: {{ speedFillTop }}px; height: {{ speedFillHeight }}px;"></div>
+    <div class="straight duty-fill" show="{{ dutyFillHeight > 0 }}" style="top: {{ dutyFillTop }}px; height: {{ dutyFillHeight }}px;"></div>
     <text class="speed-label" static>SPEED</text>
     <text class="speed" style="font-size: {{ speedFont }}px;">{{ speed }}</text>
     <text class="speed-unit" static>km/h</text>
@@ -135,7 +135,7 @@ export default {
 </script>
 <style>
 .page { width: 212px; height: 520px; background-color: #000000; }
-.arc { position: absolute; left: 0px; width: 212px; height: 212px; center-x: 106px; center-y: 106px; radius: 98px; stroke-width: 12px; }
+.arc { position: absolute; left: 0px; width: 212px; height: 212px; center-x: 106px; center-y: 106px; radius: 104px; stroke-width: 12px; }
 .speed-bottom { top: 308px; start-angle: 180deg; total-angle: 90deg; color: #36aaff; layer-color: #102738; }
 .speed-top { top: 0px; start-angle: 270deg; total-angle: 90deg; color: #36aaff; layer-color: #102738; }
 .duty-bottom { top: 308px; start-angle: 180deg; total-angle: -90deg; color: #ffd23f; layer-color: #352d10; }
@@ -145,14 +145,14 @@ export default {
 .duty-track { left: 198px; top: 106px; height: 308px; background-color: #352d10; }
 .speed-fill { left: 2px; background-color: #36aaff; }
 .duty-fill { left: 198px; background-color: #ffd23f; }
-.speed-label { position: absolute; left: 26px; top: 68px; width: 160px; height: 22px; text-align: center; font-size: 16px; color: #36aaff; }
-.speed { position: absolute; left: 16px; top: 90px; width: 180px; height: 130px; text-align: center; font-weight: bold; color: #ffffff; lines: 1; }
-.speed-unit { position: absolute; left: 36px; top: 219px; width: 140px; height: 24px; text-align: center; font-size: 17px; color: #36aaff; }
-.divider { position: absolute; left: 77px; top: 264px; width: 58px; height: 2px; background-color: #26303c; }
-.duty-label { position: absolute; left: 26px; top: 284px; width: 160px; height: 22px; text-align: center; font-size: 16px; color: #ffd23f; }
-.duty { position: absolute; left: 16px; top: 303px; width: 180px; height: 130px; text-align: center; font-weight: bold; color: #ffffff; lines: 1; }
-.duty-unit { position: absolute; left: 36px; top: 424px; width: 140px; height: 22px; text-align: center; font-size: 16px; color: #ffd23f; }
-.state { position: absolute; left: 30px; top: 39px; width: 152px; height: 20px; text-align: center; font-size: 10px; color: #c0cad7; }
-.battery-label { position: absolute; left: 36px; top: 454px; width: 140px; height: 16px; text-align: center; font-size: 10px; color: #9eafc1; }
-.battery { position: absolute; left: 41px; top: 471px; width: 130px; height: 36px; text-align: center; font-size: 30px; font-weight: bold; color: #ffffff; }
+.speed-label { position: absolute; left: 26px; top: 48px; width: 160px; height: 22px; text-align: center; font-size: 16px; color: #36aaff; }
+.speed { position: absolute; left: 16px; top: 70px; width: 180px; height: 130px; text-align: center; font-weight: bold; color: #ffffff; lines: 1; }
+.speed-unit { position: absolute; left: 36px; top: 199px; width: 140px; height: 24px; text-align: center; font-size: 17px; color: #36aaff; }
+.divider { position: absolute; left: 77px; top: 244px; width: 58px; height: 2px; background-color: #26303c; }
+.duty-label { position: absolute; left: 26px; top: 264px; width: 160px; height: 22px; text-align: center; font-size: 16px; color: #ffd23f; }
+.duty { position: absolute; left: 16px; top: 283px; width: 180px; height: 130px; text-align: center; font-weight: bold; color: #ffffff; lines: 1; }
+.duty-unit { position: absolute; left: 36px; top: 404px; width: 140px; height: 22px; text-align: center; font-size: 16px; color: #ffd23f; }
+.state { position: absolute; left: 30px; top: 24px; width: 152px; height: 20px; text-align: center; font-size: 10px; color: #c0cad7; }
+.battery-label { position: absolute; left: 36px; top: 429px; width: 140px; height: 16px; text-align: center; font-size: 10px; color: #9eafc1; }
+.battery { position: absolute; left: 41px; top: 446px; width: 130px; height: 36px; text-align: center; font-size: 30px; font-weight: bold; color: #ffffff; }
 </style>
